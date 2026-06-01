@@ -98,8 +98,8 @@ zerops:
         minFreeRamGB: 0.125
 
   # Development setup — deploy full source for interactive
-  # development via SSH. The container stays idle (zsc noop)
-  # so the developer controls what runs.
+  # development via SSH. With no run.start the container stays
+  # idle on its own, so the developer controls what runs.
   - setup: dev
     build:
       base: nodejs@22
@@ -140,11 +140,11 @@ zerops:
         DB_USER: ${db_user}
         DB_PASS: ${db_password}
 
-      # Container stays idle — developer SSHs in and runs:
+      # No run.start — the dynamic dev container stays up as a
+      # workspace on its own; SSH in and run the process by hand:
       #   npm run dev   (ts-node hot-reload via nodemon)
       # or
       #   npm start     (plain ts-node)
-      start: zsc noop --silent
 ```
 
 ### 2. Trust proxy and bind 0.0.0.0
