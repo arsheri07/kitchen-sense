@@ -6,7 +6,16 @@ import { uploadPhoto } from './storage';
 import { identifyItems } from './vision';
 import { matchRecipes, getRecipeDetail } from './recipeMatch';
 import { estimateExpiryDate } from './expiry';
-import { listShoppingList, generateFromRecipe, addManualItem, setChecked, deleteShoppingItem, clearChecked } from './shoppingList';
+import {
+  listShoppingList,
+  generateFromRecipe,
+  generateFromMealPlan,
+  addManualItem,
+  setChecked,
+  deleteShoppingItem,
+  clearChecked,
+} from './shoppingList';
+import { generateMealPlan, getMealPlan } from './mealPlan';
 import { UnsupportedFileTypeError, ImageProcessingError } from './errors';
 import { VALID_CATEGORY_VALUES } from './categories';
 
@@ -321,6 +330,30 @@ app.get('/api/recipes/:id', async (req, res) => {
   }
 });
 
+// Generates a 5-7 day meal plan: recipes tied to soon-expiring inventory
+// are placed first, remaining days greedily minimize new shopping.
+// Replaces any previously stored plan.
+app.post('/api/meal-plan/generate', async (req, res) => {
+  try {
+    const days = await generateMealPlan(pool, req.body?.days);
+    res.status(201).json({ days });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Meal plan generation failed:', message);
+    res.status(503).json({ error: message });
+  }
+});
+
+app.get('/api/meal-plan', async (_req, res) => {
+  try {
+    const days = await getMealPlan(pool);
+    res.status(200).json({ days });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    res.status(503).json({ error: message });
+  }
+});
+
 // Generates a shopping list from a recipe's missing ingredients. Merges
 // into the existing list (case-insensitive dedup) rather than replacing it.
 app.post('/api/shopping-list/generate', async (req, res) => {
@@ -334,6 +367,24 @@ app.post('/api/shopping-list/generate', async (req, res) => {
     const result = await generateFromRecipe(pool, recipeId);
     if (!result) {
       res.status(404).json({ error: 'Recipe not found' });
+      return;
+    }
+
+    res.status(201).json(result);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    res.status(503).json({ error: message });
+  }
+});
+
+// Same as /generate, but pulls missing ingredients across every day of
+// the current meal plan at once, tagging shared ingredients with each
+// day's recipe.
+app.post('/api/shopping-list/generate-from-plan', async (_req, res) => {
+  try {
+    const result = await generateFromMealPlan(pool);
+    if (!result) {
+      res.status(404).json({ error: 'No meal plan yet — generate one first.' });
       return;
     }
 

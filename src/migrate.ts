@@ -103,6 +103,36 @@ async function migrate(): Promise<void> {
       ON shopping_list_items (lower(ingredient_name))
     `);
 
+    // Many-to-many: one shopping list item can be needed by several
+    // recipes (e.g. a meal-plan week where two days both need garlic).
+    // The old single recipe_name column on shopping_list_items predates
+    // this and is left in place unused rather than dropped destructively —
+    // this table is the source of truth going forward.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS shopping_list_sources (
+        shopping_list_item_id INTEGER NOT NULL REFERENCES shopping_list_items(id) ON DELETE CASCADE,
+        recipe_name            TEXT NOT NULL,
+        PRIMARY KEY (shopping_list_item_id, recipe_name)
+      )
+    `);
+
+    // One-time backfill: carry any existing single recipe_name tags over
+    // into the new table so nothing already on a list loses its source.
+    await client.query(`
+      INSERT INTO shopping_list_sources (shopping_list_item_id, recipe_name)
+      SELECT id, recipe_name FROM shopping_list_items
+      WHERE recipe_name IS NOT NULL
+      ON CONFLICT DO NOTHING
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS meal_plan_days (
+        day_index  INTEGER PRIMARY KEY,
+        recipe_id  INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `);
+
     // Seed (or re-sync) the recipe catalog. Upserting on the unique name
     // and re-inserting ingredients fresh each run keeps this idempotent —
     // safe to run on every deploy, and edits to SEED_RECIPES take effect
