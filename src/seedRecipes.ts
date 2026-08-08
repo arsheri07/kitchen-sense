@@ -20,6 +20,47 @@ export interface SeedRecipe {
   steps: string[];
 }
 
+// Dietary restrictions a recipe SATISFIES, derived from its ingredient
+// match terms rather than hand-tagged per recipe — keeps the tagging
+// consistent and means a newly added recipe is classified automatically
+// instead of silently defaulting to "fits everything" if a tag is
+// forgotten. Matching is exact-term (not substring) specifically so e.g.
+// "coconut milk" doesn't collide with the dairy term "milk".
+const NON_VEGETARIAN_TERMS = new Set([
+  'chicken', 'beef', 'steak', 'shrimp', 'salmon', 'fish', 'bacon', 'pork', 'turkey', 'ham', 'sausage',
+]);
+const NON_VEGAN_EXTRA_TERMS = new Set([
+  'egg', 'milk', 'cheese', 'butter', 'yogurt', 'parmesan', 'honey', 'ice cream', 'caesar', 'cream',
+]);
+const GLUTEN_TERMS = new Set([
+  'bread', 'pasta', 'flour', 'taco shell', 'crouton', 'soy sauce', 'oat', 'cracker', 'granola',
+]);
+const DAIRY_TERMS = new Set([
+  'milk', 'cheese', 'butter', 'yogurt', 'parmesan', 'ice cream', 'caesar', 'cream',
+]);
+const NUT_TERMS = new Set([
+  'peanut', 'peanut butter', 'almond', 'cashew', 'walnut', 'pecan', 'hazelnut', 'pistachio',
+]);
+
+export function deriveDietaryTags(ingredients: SeedIngredient[]): string[] {
+  const terms = ingredients.map((i) => i.matchTerm.toLowerCase());
+  const hasAny = (set: Set<string>) => terms.some((t) => set.has(t));
+
+  const vegetarian = !hasAny(NON_VEGETARIAN_TERMS);
+  const vegan = vegetarian && !hasAny(NON_VEGAN_EXTRA_TERMS);
+  const glutenFree = !hasAny(GLUTEN_TERMS);
+  const dairyFree = !hasAny(DAIRY_TERMS);
+  const nutFree = !hasAny(NUT_TERMS);
+
+  const tags: string[] = [];
+  if (vegetarian) tags.push('vegetarian');
+  if (vegan) tags.push('vegan');
+  if (glutenFree) tags.push('gluten-free');
+  if (dairyFree) tags.push('dairy-free');
+  if (nutFree) tags.push('nut-free');
+  return tags;
+}
+
 // A mix of simple (2-3 common ingredients) and more complex recipes, so a
 // small starter inventory has a realistic shot at fully matching several
 // of them while others land as close-but-missing-a-few.

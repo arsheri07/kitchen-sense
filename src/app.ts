@@ -18,6 +18,8 @@ import {
 import { generateMealPlan, getMealPlan } from './mealPlan';
 import { UnsupportedFileTypeError, ImageProcessingError } from './errors';
 import { VALID_CATEGORY_VALUES } from './categories';
+import { getPreferences, setPreferences, DIETARY_RESTRICTIONS } from './preferences';
+import { getBestRecipeToCook } from './suggest';
 
 const USE_SOON_WINDOW_DAYS = 3;
 
@@ -354,12 +356,60 @@ app.delete('/api/inventory/:id', async (req, res) => {
   }
 });
 
+// Dietary preferences (structured restrictions + free-text avoid terms).
+// Applied inside matchRecipes() itself, so every surface built on top of
+// it — the match lists below, the meal planner, and the cook suggestion —
+// automatically respects whatever is saved here.
+app.get('/api/preferences', async (_req, res) => {
+  try {
+    const prefs = await getPreferences(pool);
+    res.status(200).json({ ...prefs, availableRestrictions: DIETARY_RESTRICTIONS });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    res.status(503).json({ error: message });
+  }
+});
+
+app.put('/api/preferences', async (req, res) => {
+  try {
+    const body = req.body ?? {};
+    const prefs = await setPreferences(pool, { restrictions: body.restrictions, avoidTerms: body.avoidTerms });
+    res.status(200).json(prefs);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Saving preferences failed:', message);
+    res.status(500).json({ error: 'Failed to save preferences. Please try again.' });
+  }
+});
+
 app.get('/api/recipes/match', async (_req, res) => {
   try {
     const result = await matchRecipes(pool);
     res.status(200).json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    res.status(503).json({ error: message });
+  }
+});
+
+// The single best recipe to cook right now — fully ready, closest to
+// expiring, respecting active preferences. Distinct from a random
+// "Surprise Me" pick. Registered before /api/recipes/:id so "suggest"
+// isn't swallowed as an :id value.
+app.get('/api/recipes/suggest', async (_req, res) => {
+  try {
+    const suggestion = await getBestRecipeToCook(pool);
+    if (!suggestion) {
+      res.status(200).json({
+        recipe: null,
+        message: 'Nothing is fully ready to make right now — scan more items or check Almost There.',
+      });
+      return;
+    }
+    res.status(200).json(suggestion);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Cook suggestion failed:', message);
     res.status(503).json({ error: message });
   }
 });

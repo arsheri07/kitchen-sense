@@ -1,5 +1,5 @@
 import { Client } from 'pg';
-import { SEED_RECIPES } from './seedRecipes';
+import { SEED_RECIPES, deriveDietaryTags } from './seedRecipes';
 
 async function migrate(): Promise<void> {
   const client = new Client({
@@ -83,6 +83,11 @@ async function migrate(): Promise<void> {
     await client.query(`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS steps TEXT[]`);
     await client.query(`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS photo_url TEXT`);
 
+    // Dietary restrictions this recipe satisfies (vegetarian/vegan/
+    // gluten-free/dairy-free/nut-free) — derived from ingredients at seed
+    // time below, not hand-authored, so it can't drift out of sync.
+    await client.query(`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS dietary_tags TEXT[] DEFAULT '{}'`);
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS recipe_ingredients (
         id              SERIAL PRIMARY KEY,
@@ -142,17 +147,33 @@ async function migrate(): Promise<void> {
       )
     `);
 
+    // Singleton row (id = 1): dietary restrictions + free-text avoid terms,
+    // applied everywhere recipes are surfaced (matching, meal plan,
+    // suggestions). Seeded once with no restrictions — never overwritten
+    // on subsequent migration runs.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS preferences (
+        id          INTEGER PRIMARY KEY DEFAULT 1,
+        restrictions TEXT[] NOT NULL DEFAULT '{}',
+        avoid_terms  TEXT[] NOT NULL DEFAULT '{}',
+        updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+        CONSTRAINT preferences_singleton CHECK (id = 1)
+      )
+    `);
+    await client.query(`INSERT INTO preferences (id) VALUES (1) ON CONFLICT (id) DO NOTHING`);
+
     // Seed (or re-sync) the recipe catalog. Upserting on the unique name
     // and re-inserting ingredients fresh each run keeps this idempotent —
     // safe to run on every deploy, and edits to SEED_RECIPES take effect
     // on the next one.
     for (const recipe of SEED_RECIPES) {
+      const dietaryTags = deriveDietaryTags(recipe.ingredients);
       const result = await client.query<{ id: number }>(
-        `INSERT INTO recipes (name, description, steps)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description, steps = EXCLUDED.steps
+        `INSERT INTO recipes (name, description, steps, dietary_tags)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description, steps = EXCLUDED.steps, dietary_tags = EXCLUDED.dietary_tags
          RETURNING id`,
-        [recipe.name, recipe.description, recipe.steps],
+        [recipe.name, recipe.description, recipe.steps, dietaryTags],
       );
       const recipeId = result.rows[0].id;
 

@@ -303,6 +303,28 @@
   .section-heading.good { color: var(--good); }
   .section-heading.warn { color: var(--warn); }
 
+  /* ============ Shared tab-toolbar row (Recipes / Meal Plan / Shopping headers) ============ */
+  .section-toolbar {
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 8px; margin-bottom: 10px;
+  }
+  .section-toolbar .section-heading { margin: 0; }
+  .section-toolbar-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .toolbar-select {
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 6px 8px; font-size: 12.5px; background: var(--surface-2); color: var(--text);
+  }
+
+  /* ============ Inline single-field form (shopping list manual add) ============ */
+  .inline-form { display: flex; gap: 8px; margin-bottom: 12px; }
+  .inline-form input {
+    flex: 1; min-width: 0;
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 10px 12px; font-size: 13.5px; background: var(--surface); color: var(--text);
+    transition: border-color 0.15s ease;
+  }
+  .inline-form input:focus-visible { border-color: var(--accent); }
+
   /* ============ Category accordions ============ */
   .category-group { border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; margin-bottom: 10px; background: var(--surface); }
   .category-header {
@@ -393,7 +415,6 @@
   .tag { font-size: 10.5px; font-weight: 600; padding: 3px 9px; border-radius: 100px; }
   .tag.have { background: var(--good-wash); color: var(--good); }
   .tag.missing { background: var(--warn-wash); color: var(--warn); }
-  .add-to-list-btn { margin-top: 4px; }
 
   /* --- expanded recipe detail: photo, ingredients w/ amounts, steps --- */
   .recipe-detail { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.26s ease; }
@@ -413,6 +434,7 @@
   .ingredient-row .ing-amount { color: var(--text-muted); font-family: var(--font-mono); font-size: 11.5px; flex-shrink: 0; }
   .recipe-steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
   .recipe-steps li { font-size: 13.5px; line-height: 1.5; color: var(--text); padding-left: 4px; }
+  .recipe-detail-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
   /* ============ Shopping list ============ */
   .shop-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
@@ -440,21 +462,20 @@
   .view-toggle-btn.active { background: var(--accent-wash); color: var(--accent); }
   .view-toggle-btn:hover:not(.active) { background: var(--surface-2); }
 
-  .dish-group-header { font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 16px 0 6px; padding-top: 8px; border-top: 1px solid var(--border); }
-  .dish-group-header:first-child { margin-top: 0; padding-top: 0; border-top: none; }
-
   /* ============ Meal plan ============ */
-  .meal-plan-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 4px 14px; box-shadow: var(--shadow-card); margin-bottom: 18px; }
-  .plan-day { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--border); }
-  .plan-day:last-child { border-bottom: none; }
-  .plan-day-label { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--text-faint); width: 42px; flex-shrink: 0; }
-  .plan-day-recipe { flex: 1; font-weight: 600; font-size: 13.5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .plan-day-label { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--text-faint); flex-shrink: 0; }
   .plan-day-badges { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
   .urgent-badge {
     font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 100px;
     background: var(--warn-wash); color: var(--warn); white-space: nowrap;
   }
   .add-to-list-btn { margin: 10px 0 12px; }
+
+  /* Meal plan days reuse .recipe-card / .recipe-summary / .recipe-detail
+     wholesale (same collapse pattern, same lazy-loaded detail body) — only
+     the summary line's content differs: a day label ahead of the name. */
+  .meal-plan-day-card .recipe-summary-text { display: flex; align-items: baseline; gap: 9px; }
+  .meal-plan-day-card .recipe-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* ============ Confidence review flag ============ */
   .review-badge {
@@ -503,6 +524,42 @@
     .cook-step-text { font-size: clamp(19px, 6vw, 26px); }
   }
 
+  /* ============ Settings modal (dietary preferences) ============ */
+  .header-actions { display: flex; align-items: center; gap: 4px; }
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 110;
+    background: color-mix(in srgb, var(--bg) 55%, transparent);
+    backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    animation: fade-in 0.16s ease;
+  }
+  .modal-overlay[hidden] { display: none; }
+  .modal-card {
+    width: 100%; max-width: 420px; max-height: calc(100vh - 40px); overflow-y: auto;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-hero); padding: 20px;
+  }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .modal-title { font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
+  .modal-sub { font-size: 12.5px; color: var(--text-muted); margin: 4px 0 16px; line-height: 1.5; }
+  .pref-group-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); margin: 16px 0 8px; }
+  .pref-group-label:first-of-type { margin-top: 0; }
+  .pref-restrictions { display: flex; flex-direction: column; gap: 9px; }
+  .pref-checkbox { display: flex; align-items: center; gap: 9px; font-size: 13.5px; font-weight: 500; }
+  .pref-checkbox input { width: 17px; height: 17px; accent-color: var(--accent); flex-shrink: 0; }
+  .pref-avoid-input {
+    width: 100%; min-height: 64px; resize: vertical;
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 9px 11px; font-size: 13px; background: var(--surface-2); color: var(--text);
+  }
+  .pref-avoid-input:focus-visible { border-color: var(--accent); }
+  .pref-hint { font-size: 11px; color: var(--text-faint); margin-top: 5px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+  @media (max-width: 600px) {
+    .modal-card { padding: 16px; }
+  }
+
   /* ============ Mobile ============ */
   @media (max-width: 600px) {
     .header-inner { padding: 12px 14px 0; }
@@ -527,6 +584,10 @@
     .item-fields { gap: 10px 12px; }
     .item-fields .category, .item-fields .expiry { min-width: 0; flex: 1 1 120px; }
     .ingredient-row { flex-direction: column; align-items: flex-start; gap: 2px; }
+    .section-toolbar-actions { width: 100%; }
+    .section-toolbar-actions .btn:not(.btn-icon) { flex: 1; }
+    .modal-overlay { padding: 12px; align-items: flex-end; }
+    .modal-card { max-width: none; border-radius: var(--radius-lg) var(--radius-lg) 0 0; max-height: 85vh; }
   }
 </style>
 </head>
@@ -542,6 +603,11 @@
             <div class="wordmark">KitchenSense</div>
             <div class="tagline">Scan. Track. Cook.</div>
           </div>
+        </div>
+        <div class="header-actions">
+          <button type="button" id="settingsBtn" class="btn btn-icon btn-ghost" aria-label="Dietary preferences">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+          </button>
         </div>
       </div>
 
@@ -643,15 +709,21 @@
 
     <!-- ===================== RECIPES ===================== -->
     <section id="tab-recipes" class="tab-panel" role="tabpanel">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <div class="section-heading good" style="margin:0;">
+      <div class="section-toolbar">
+        <div class="section-heading good">
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
           Ready to make <span class="count" id="readyCount"></span>
         </div>
-        <button type="button" id="surpriseMeBtn" class="btn btn-ghost btn-sm">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M15 9l.8-.8M17.8 6.2 19 5M3 21l9-9M12.2 6.2 13 7"/></svg>
-          Surprise me
-        </button>
+        <div class="section-toolbar-actions">
+          <button type="button" id="whatToCookBtn" class="btn btn-primary btn-sm">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a6 6 0 1 1-12 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+            What should I cook?
+          </button>
+          <button type="button" id="surpriseMeBtn" class="btn btn-ghost btn-sm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M15 9l.8-.8M17.8 6.2 19 5M3 21l9-9M12.2 6.2 13 7"/></svg>
+            Surprise me
+          </button>
+        </div>
       </div>
       <div id="readyList"><div class="empty">Loading…</div></div>
 
@@ -664,10 +736,10 @@
 
     <!-- ===================== MEAL PLAN ===================== -->
     <section id="tab-mealplan" class="tab-panel" role="tabpanel">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <div class="section-heading" style="margin:0;">Weekly meal plan</div>
-        <div style="display:flex; gap:6px; align-items:center;">
-          <select id="planDays" class="mono" style="border:1px solid var(--border); border-radius:var(--radius-sm); padding:6px 8px; font-size:12.5px; background:var(--surface-2); color:var(--text);">
+      <div class="section-toolbar">
+        <div class="section-heading">Weekly meal plan</div>
+        <div class="section-toolbar-actions">
+          <select id="planDays" class="toolbar-select mono">
             <option value="5">5 days</option>
             <option value="6">6 days</option>
             <option value="7" selected>7 days</option>
@@ -675,17 +747,15 @@
           <button type="button" id="generatePlanBtn" class="btn btn-primary btn-sm">Generate plan</button>
         </div>
       </div>
-      <div class="meal-plan-card">
-        <div id="mealPlanDays"><div class="empty">No meal plan yet — generate one from your current inventory.</div></div>
-        <button type="button" id="addPlanToShoppingBtn" class="btn btn-ghost btn-sm add-to-list-btn" style="display:none;">Add whole week's missing ingredients to shopping list</button>
-      </div>
+      <div id="mealPlanDays"><div class="empty">No meal plan yet — generate one from your current inventory.</div></div>
+      <button type="button" id="addPlanToShoppingBtn" class="btn btn-ghost btn-sm add-to-list-btn" style="display:none;">Add whole week's missing ingredients to shopping list</button>
     </section>
 
     <!-- ===================== SHOPPING LIST ===================== -->
     <section id="tab-shopping" class="tab-panel" role="tabpanel">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
-        <div class="section-heading" style="margin:0;">Shopping list</div>
-        <div style="display:flex; gap:6px; align-items:center;">
+      <div class="section-toolbar">
+        <div class="section-heading">Shopping list</div>
+        <div class="section-toolbar-actions">
           <div class="view-toggle" id="shoppingViewToggle" role="group" aria-label="Group shopping list">
             <button type="button" class="view-toggle-btn active" data-view="flat">Flat</button>
             <button type="button" class="view-toggle-btn" data-view="grouped">By dish</button>
@@ -697,8 +767,8 @@
           <button id="clearCheckedBtn" class="btn btn-ghost btn-sm">Clear checked</button>
         </div>
       </div>
-      <form id="addShoppingForm" class="upload-row" style="margin-bottom:12px;">
-        <input id="addShoppingName" placeholder="Add an item (e.g. paper towels)" style="flex:1; min-width:120px;" />
+      <form id="addShoppingForm" class="inline-form">
+        <input id="addShoppingName" placeholder="Add an item (e.g. paper towels)" />
         <button type="submit" class="btn btn-ghost btn-sm">Add</button>
       </form>
       <div class="shopping-card">
@@ -740,6 +810,31 @@
     </div>
   </div>
 
+  <!-- ===================== SETTINGS / DIETARY PREFERENCES ===================== -->
+  <div id="settingsOverlay" class="modal-overlay" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-title">Dietary preferences</span>
+        <button type="button" class="btn btn-icon btn-ghost" id="settingsCloseBtn" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <p class="modal-sub">Applied everywhere recipes are surfaced — matching, the weekly meal plan, and suggestions.</p>
+
+      <div class="pref-group-label">Restrictions</div>
+      <div class="pref-restrictions" id="prefRestrictions"></div>
+
+      <div class="pref-group-label">Avoid these ingredients</div>
+      <textarea id="prefAvoidInput" class="pref-avoid-input" placeholder="e.g. cilantro, shellfish, mushrooms"></textarea>
+      <div class="pref-hint">Comma or newline separated. Any recipe using one of these is excluded.</div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost btn-sm" id="settingsCancelBtn">Cancel</button>
+        <button type="button" class="btn btn-primary btn-sm" id="settingsSaveBtn">Save preferences</button>
+      </div>
+    </div>
+  </div>
+
 <script>
 /* ============ Category taxonomy (kept in sync by hand with src/categories.ts) ============ */
 const CATEGORIES = [
@@ -751,6 +846,15 @@ const CATEGORIES = [
   { value: 'beverage', label: 'Beverages' },
   { value: 'frozen', label: 'Frozen' },
   { value: 'other', label: 'Other' },
+];
+
+/* ============ Dietary restrictions (kept in sync by hand with src/preferences.ts) ============ */
+const DIETARY_RESTRICTIONS = [
+  { value: 'vegetarian', label: 'Vegetarian' },
+  { value: 'vegan', label: 'Vegan' },
+  { value: 'gluten-free', label: 'Gluten-free' },
+  { value: 'dairy-free', label: 'Dairy-free' },
+  { value: 'nut-free', label: 'Nut-free' },
 ];
 
 /* ============ Element refs ============ */
@@ -789,7 +893,17 @@ const addPlanToShoppingBtn = document.getElementById('addPlanToShoppingBtn');
 const shoppingViewToggle = document.getElementById('shoppingViewToggle');
 const mealPlanTabBadge = document.getElementById('mealPlanTabBadge');
 const surpriseMeBtn = document.getElementById('surpriseMeBtn');
+const whatToCookBtn = document.getElementById('whatToCookBtn');
 const copyListBtn = document.getElementById('copyListBtn');
+
+/* ============ Settings (dietary preferences) element refs ============ */
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsOverlay = document.getElementById('settingsOverlay');
+const settingsCloseBtn = document.getElementById('settingsCloseBtn');
+const settingsCancelBtn = document.getElementById('settingsCancelBtn');
+const settingsSaveBtn = document.getElementById('settingsSaveBtn');
+const prefRestrictionsEl = document.getElementById('prefRestrictions');
+const prefAvoidInput = document.getElementById('prefAvoidInput');
 
 /* ============ Cook Mode element refs ============ */
 const cookModeOverlay = document.getElementById('cookModeOverlay');
@@ -1335,7 +1449,7 @@ async function loadRecipeDetail(cardEl, recipeId) {
       <div class="ingredient-list">${ingredientRows}</div>
       <div class="recipe-section-label">Steps</div>
       ${stepsHtml}
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">${cookBtn}${addToListBtn}</div>
+      <div class="recipe-detail-actions">${cookBtn}${addToListBtn}</div>
     `;
 
     const cookModeBtn = bodyEl.querySelector('.start-cooking');
@@ -1480,12 +1594,47 @@ function renderShoppingList() {
   });
 
   for (const dish of dishNames) {
-    const header = document.createElement('div');
-    header.className = 'dish-group-header';
-    header.textContent = `${dish} (${groups.get(dish).length})`;
-    shoppingListEl.appendChild(header);
-    for (const item of groups.get(dish)) shoppingListEl.appendChild(shoppingRow(item));
+    shoppingListEl.appendChild(dishGroupSection(dish, groups.get(dish)));
   }
+}
+
+// Collapsible dish group — reuses the exact same accordion markup/classes
+// as an inventory category section, so "By dish" behaves identically to
+// every other collapse-by-default group in the app: name + count visible
+// up front, rows revealed only on a deliberate click.
+const dishOverride = new Map(); // dish name -> forced expanded state (session-remembered)
+
+function dishGroupSection(dishName, items) {
+  const expanded = dishOverride.has(dishName) ? dishOverride.get(dishName) : false;
+
+  const section = document.createElement('div');
+  section.className = 'category-group' + (expanded ? ' expanded' : '');
+
+  section.innerHTML = `
+    <button type="button" class="category-header" aria-expanded="${expanded}">
+      <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      <span class="category-name">${escapeAttr(dishName)}</span>
+      <span class="category-count mono">${items.length}</span>
+    </button>
+    <div class="category-content"${expanded ? '' : ' inert'}>
+      <div class="category-content-inner">
+        <div class="category-body"></div>
+      </div>
+    </div>
+  `;
+
+  const body = section.querySelector('.category-body');
+  for (const item of items) body.appendChild(shoppingRow(item));
+
+  section.querySelector('.category-header').addEventListener('click', () => {
+    const nowExpanded = !section.classList.contains('expanded');
+    section.classList.toggle('expanded', nowExpanded);
+    section.querySelector('.category-header').setAttribute('aria-expanded', String(nowExpanded));
+    section.querySelector('.category-content').toggleAttribute('inert', !nowExpanded);
+    dishOverride.set(dishName, nowExpanded);
+  });
+
+  return section;
 }
 
 shoppingViewToggle.querySelectorAll('.view-toggle-btn').forEach((btn) => {
@@ -1537,9 +1686,15 @@ addShoppingForm.addEventListener('submit', async (e) => {
 });
 
 /* ============ Meal plan ============ */
-function planDayRow(day) {
+// Reuses the exact recipe-card / recipe-summary / recipe-detail markup and
+// the same lazy loadRecipeDetail() fetch a Recipes-tab card uses — a day
+// is just a recipe with a day label ahead of its name, so it collapses,
+// expands, shows photo/ingredients/steps, and launches Cook Mode
+// identically to any other recipe card in the app.
+function mealPlanDayCard(day) {
   const div = document.createElement('div');
-  div.className = 'plan-day';
+  div.className = 'recipe-card meal-plan-day-card' + (day.missingCount === 0 ? ' ready' : '');
+  div.dataset.recipeId = day.recipeId;
 
   const pill = day.missingCount === 0
     ? '<span class="ready-pill">READY</span>'
@@ -1550,10 +1705,35 @@ function planDayRow(day) {
     : '';
 
   div.innerHTML = `
-    <span class="plan-day-label mono">Day ${day.day + 1}</span>
-    <span class="plan-day-recipe">${escapeAttr(day.recipeName)}</span>
-    <span class="plan-day-badges">${urgentBadge}${pill}</span>
+    <button type="button" class="recipe-summary" aria-expanded="false">
+      <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      <span class="recipe-summary-text">
+        <span class="plan-day-label mono">Day ${day.day + 1}</span>
+        <span class="recipe-name">${escapeAttr(day.recipeName)}</span>
+      </span>
+      <span class="plan-day-badges">${urgentBadge}${pill}</span>
+    </button>
+    <div class="recipe-detail" inert>
+      <div class="recipe-detail-inner">
+        <div class="recipe-detail-body"><div class="empty">Loading…</div></div>
+      </div>
+    </div>
   `;
+
+  let detailLoaded = false;
+
+  div.querySelector('.recipe-summary').addEventListener('click', async () => {
+    const nowExpanded = !div.classList.contains('expanded');
+    div.classList.toggle('expanded', nowExpanded);
+    div.querySelector('.recipe-summary').setAttribute('aria-expanded', String(nowExpanded));
+    div.querySelector('.recipe-detail').toggleAttribute('inert', !nowExpanded);
+
+    if (nowExpanded && !detailLoaded) {
+      detailLoaded = true;
+      await loadRecipeDetail(div, day.recipeId);
+    }
+  });
+
   return div;
 }
 
@@ -1571,7 +1751,7 @@ async function loadMealPlan() {
       addPlanToShoppingBtn.style.display = 'none';
       return;
     }
-    for (const day of days) mealPlanDaysEl.appendChild(planDayRow(day));
+    for (const day of days) mealPlanDaysEl.appendChild(mealPlanDayCard(day));
     addPlanToShoppingBtn.style.display = days.some((d) => d.missingCount > 0) ? '' : 'none';
   } catch (err) {
     mealPlanDaysEl.innerHTML = `<div class="empty">Failed to load meal plan: ${err.message}</div>`;
@@ -1775,6 +1955,105 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeCookMode();
   if (e.key === 'ArrowRight') cookNextBtn.click();
   if (e.key === 'ArrowLeft') cookBackBtn.click();
+});
+
+/* ============ What should I cook right now? ============ */
+// Distinct from Surprise Me: a deterministic single best pick (fully
+// ready, closest to expiring, preference-respecting) rather than random.
+whatToCookBtn.addEventListener('click', async () => {
+  whatToCookBtn.disabled = true;
+  try {
+    const res = await fetch('/api/recipes/suggest');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+
+    if (!data.recipe) {
+      setStatus(data.message || 'Nothing is fully ready to make right now.', true);
+      return;
+    }
+
+    const cardEl = readyListEl.querySelector(`[data-recipe-id="${data.recipe.id}"]`);
+    if (!cardEl) {
+      setStatus(`Best pick right now: ${data.recipe.name}`);
+      return;
+    }
+    if (!cardEl.classList.contains('expanded')) {
+      cardEl.querySelector('.recipe-summary').click();
+    }
+    cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    cardEl.animate(
+      [{ boxShadow: '0 0 0 0 var(--accent-wash)' }, { boxShadow: '0 0 0 8px var(--accent-wash)' }, { boxShadow: '0 0 0 0 var(--accent-wash)' }],
+      { duration: 900, easing: 'ease-out' },
+    );
+  } catch (err) {
+    setStatus(err.message, true);
+  } finally {
+    whatToCookBtn.disabled = false;
+  }
+});
+
+/* ============ Settings (dietary preferences) ============ */
+prefRestrictionsEl.innerHTML = DIETARY_RESTRICTIONS.map(
+  (r) => `
+    <label class="pref-checkbox">
+      <input type="checkbox" value="${r.value}" />
+      ${r.label}
+    </label>`,
+).join('');
+
+async function openSettings() {
+  settingsOverlay.hidden = false;
+  try {
+    const res = await fetch('/api/preferences');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+    const restrictions = data.restrictions || [];
+    prefRestrictionsEl.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+      cb.checked = restrictions.includes(cb.value);
+    });
+    prefAvoidInput.value = (data.avoidTerms || []).join(', ');
+  } catch (err) {
+    setStatus(`Failed to load preferences: ${err.message}`, true);
+  }
+}
+
+function closeSettings() {
+  settingsOverlay.hidden = true;
+}
+
+settingsBtn.addEventListener('click', openSettings);
+settingsCloseBtn.addEventListener('click', closeSettings);
+settingsCancelBtn.addEventListener('click', closeSettings);
+document.addEventListener('keydown', (e) => {
+  if (!settingsOverlay.hidden && e.key === 'Escape') closeSettings();
+});
+
+settingsSaveBtn.addEventListener('click', async () => {
+  const restrictions = Array.from(prefRestrictionsEl.querySelectorAll('input[type="checkbox"]:checked')).map((cb) => cb.value);
+  const avoidTerms = prefAvoidInput.value
+    .split(/[,\n]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  settingsSaveBtn.disabled = true;
+  settingsSaveBtn.textContent = 'Saving…';
+  try {
+    const res = await fetch('/api/preferences', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ restrictions, avoidTerms }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+    closeSettings();
+    setStatus('Dietary preferences saved.');
+    await refreshAll();
+  } catch (err) {
+    setStatus(err.message, true);
+  } finally {
+    settingsSaveBtn.disabled = false;
+    settingsSaveBtn.textContent = 'Save preferences';
+  }
 });
 
 /* ============ Orchestration ============ */

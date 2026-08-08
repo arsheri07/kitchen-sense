@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import { fetchDishPhoto } from './pexels';
+import { getPreferences, Preferences } from './preferences';
 
 export interface RecipeIngredientMatch {
   name: string;
@@ -18,23 +19,50 @@ export interface RecipeMatch {
   missingCount: number;
   // Full detail (name + amount + in-stock) for the expanded recipe view.
   ingredients: RecipeIngredientMatch[];
+  // Dietary restrictions this recipe satisfies (e.g. 'vegetarian',
+  // 'gluten-free') — used to filter against active preferences below.
+  dietaryTags: string[];
 }
 
 interface Row {
   recipe_id: number;
   recipe_name: string;
   recipe_description: string | null;
+  dietary_tags: string[] | null;
   ingredient_name: string;
   amount: string | null;
   in_stock: boolean;
 }
 
+// A recipe is excluded once ANY active preference conflicts: a checked
+// restriction the recipe doesn't satisfy, or a free-text avoid term
+// matching one of its ingredient names.
+function violatesPreferences(recipe: RecipeMatch, prefs: Preferences): boolean {
+  if (prefs.restrictions.some((restriction) => !recipe.dietaryTags.includes(restriction))) {
+    return true;
+  }
+  if (prefs.avoidTerms.length > 0) {
+    const names = recipe.ingredients.map((i) => i.name.toLowerCase());
+    for (const term of prefs.avoidTerms) {
+      if (names.some((name) => name.includes(term) || term.includes(name))) return true;
+    }
+  }
+  return false;
+}
+
 // Splits the recipe catalog into "ready to make" (every ingredient is in
 // stock) and "almost there" (missing 1+ ingredients), the latter ranked by
-// fewest missing first so the closest matches surface at the top.
+// fewest missing first so the closest matches surface at the top. Recipes
+// that violate an active dietary preference (structured restriction or
+// free-text avoid term) are excluded from both lists entirely — this is
+// the single place recipe surfacing is filtered, so the meal planner and
+// "what should I cook" suggestion inherit it automatically since both are
+// built on top of this function.
 export async function matchRecipes(
   pool: Pool,
 ): Promise<{ readyToMake: RecipeMatch[]; almostThere: RecipeMatch[] }> {
+  const prefs = await getPreferences(pool);
+
   // A single query drives the whole match: for every recipe ingredient,
   // check whether any inventory item name contains its match term.
   const result = await pool.query<Row>(`
@@ -42,6 +70,7 @@ export async function matchRecipes(
       r.id AS recipe_id,
       r.name AS recipe_name,
       r.description AS recipe_description,
+      r.dietary_tags,
       ri.ingredient_name,
       ri.amount,
       EXISTS (
@@ -67,6 +96,7 @@ export async function matchRecipes(
         missingIngredients: [],
         missingCount: 0,
         ingredients: [],
+        dietaryTags: row.dietary_tags ?? [],
       };
       byRecipe.set(row.recipe_id, recipe);
     }
@@ -79,7 +109,9 @@ export async function matchRecipes(
     }
   }
 
-  const all = Array.from(byRecipe.values()).map((r) => ({ ...r, missingCount: r.missingIngredients.length }));
+  const all = Array.from(byRecipe.values())
+    .map((r) => ({ ...r, missingCount: r.missingIngredients.length }))
+    .filter((r) => !violatesPreferences(r, prefs));
 
   const readyToMake = all.filter((r) => r.missingCount === 0).sort((a, b) => a.name.localeCompare(b.name));
 
