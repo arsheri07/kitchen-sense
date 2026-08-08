@@ -20,8 +20,17 @@ export interface RecipeMatch {
   // Full detail (name + amount + in-stock) for the expanded recipe view.
   ingredients: RecipeIngredientMatch[];
   // Dietary restrictions this recipe satisfies (e.g. 'vegetarian',
-  // 'gluten-free') — used to filter against active preferences below.
+  // 'gluten-free'), plus a coarse 'high-protein' tag — used to filter
+  // (restrictions) and rank (high-protein) against active preferences.
   dietaryTags: string[];
+  // Canonical protein types this recipe features (chicken/beef/fish/...)
+  // — used only for ranking against a "favorite proteins" preference,
+  // never for exclusion.
+  proteinTypes: string[];
+  // How well this recipe matches the soft taste/nutrition preferences —
+  // 0 when no preference is set or nothing matches. Purely a ranking
+  // signal, computed fresh on every match/plan/suggest call.
+  preferenceScore: number;
 }
 
 interface Row {
@@ -29,6 +38,7 @@ interface Row {
   recipe_name: string;
   recipe_description: string | null;
   dietary_tags: string[] | null;
+  protein_types: string[] | null;
   ingredient_name: string;
   amount: string | null;
   in_stock: boolean;
@@ -36,7 +46,8 @@ interface Row {
 
 // A recipe is excluded once ANY active preference conflicts: a checked
 // restriction the recipe doesn't satisfy, or a free-text avoid term
-// matching one of its ingredient names.
+// matching one of its ingredient names. Hard filter — unlike
+// preferenceScore below, this never lets a "bad" recipe stay visible.
 function violatesPreferences(recipe: RecipeMatch, prefs: Preferences): boolean {
   if (prefs.restrictions.some((restriction) => !recipe.dietaryTags.includes(restriction))) {
     return true;
@@ -48,6 +59,21 @@ function violatesPreferences(recipe: RecipeMatch, prefs: Preferences): boolean {
     }
   }
   return false;
+}
+
+// Soft ranking signal — higher is a better match for stated taste
+// preferences. Never used to exclude a recipe (that's violatesPreferences
+// above); a recipe scoring 0 here still shows up, just lower in the list.
+export function computePreferenceScore(
+  recipe: { dietaryTags: string[]; proteinTypes: string[] },
+  prefs: Preferences,
+): number {
+  let score = 0;
+  if (prefs.highProtein && recipe.dietaryTags.includes('high-protein')) score += 2;
+  if (prefs.favoriteProteins.length > 0) {
+    score += recipe.proteinTypes.filter((type) => prefs.favoriteProteins.includes(type)).length;
+  }
+  return score;
 }
 
 // Splits the recipe catalog into "ready to make" (every ingredient is in
@@ -71,6 +97,7 @@ export async function matchRecipes(
       r.name AS recipe_name,
       r.description AS recipe_description,
       r.dietary_tags,
+      r.protein_types,
       ri.ingredient_name,
       ri.amount,
       EXISTS (
@@ -97,6 +124,8 @@ export async function matchRecipes(
         missingCount: 0,
         ingredients: [],
         dietaryTags: row.dietary_tags ?? [],
+        proteinTypes: row.protein_types ?? [],
+        preferenceScore: 0,
       };
       byRecipe.set(row.recipe_id, recipe);
     }
@@ -111,13 +140,26 @@ export async function matchRecipes(
 
   const all = Array.from(byRecipe.values())
     .map((r) => ({ ...r, missingCount: r.missingIngredients.length }))
-    .filter((r) => !violatesPreferences(r, prefs));
+    .filter((r) => !violatesPreferences(r, prefs))
+    .map((r) => ({ ...r, preferenceScore: computePreferenceScore(r, prefs) }));
 
-  const readyToMake = all.filter((r) => r.missingCount === 0).sort((a, b) => a.name.localeCompare(b.name));
+  // Preference score leads both lists — a recipe that better matches
+  // stated taste preferences ranks higher even with more missing
+  // ingredients (within Almost There) or just alphabetically otherwise
+  // (within Ready to Make, which has no other meaningful ranking signal).
+  // Non-matching, non-restricted recipes are never dropped — they just
+  // sort lower, per the "influence ranking, not filtering" requirement.
+  const readyToMake = all
+    .filter((r) => r.missingCount === 0)
+    .sort((a, b) => {
+      if (b.preferenceScore !== a.preferenceScore) return b.preferenceScore - a.preferenceScore;
+      return a.name.localeCompare(b.name);
+    });
 
   const almostThere = all
     .filter((r) => r.missingCount > 0)
     .sort((a, b) => {
+      if (b.preferenceScore !== a.preferenceScore) return b.preferenceScore - a.preferenceScore;
       if (a.missingCount !== b.missingCount) return a.missingCount - b.missingCount;
       if (b.matchedIngredients.length !== a.matchedIngredients.length) {
         return b.matchedIngredients.length - a.matchedIngredients.length;

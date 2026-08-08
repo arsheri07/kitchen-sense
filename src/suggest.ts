@@ -24,6 +24,9 @@ export async function getBestRecipeToCook(pool: Pool): Promise<CookSuggestion | 
     const aUrgency = a.urgencyDays === null ? Infinity : a.urgencyDays;
     const bUrgency = b.urgencyDays === null ? Infinity : b.urgencyDays;
     if (aUrgency !== bUrgency) return aUrgency - bUrgency;
+    // Same expiry-closest tie unresolved by urgency alone: let taste
+    // preference break it before falling back to name.
+    if (b.recipe.preferenceScore !== a.recipe.preferenceScore) return b.recipe.preferenceScore - a.recipe.preferenceScore;
     return a.recipe.name.localeCompare(b.recipe.name);
   });
 

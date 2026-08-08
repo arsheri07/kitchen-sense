@@ -46,10 +46,14 @@ export async function generateMealPlan(pool: Pool, requestedDays: unknown): Prom
   // which would be nearly every recipe (every item gets a default expiry
   // estimate) and would starve the shopping-minimization phase below of
   // anything to do.
+  // Preference score is a tie-breaker here, not the primary signal — using
+  // expiring food is still the point of this phase. It only decides
+  // between recipes that are equally urgent.
   const urgent = candidates
     .filter((c) => c.urgencyDays !== null && c.urgencyDays <= days)
     .sort((a, b) => {
       if (a.urgencyDays! !== b.urgencyDays!) return a.urgencyDays! - b.urgencyDays!;
+      if (b.preferenceScore !== a.preferenceScore) return b.preferenceScore - a.preferenceScore;
       if (a.missingCount !== b.missingCount) return a.missingCount - b.missingCount;
       return a.name.localeCompare(b.name);
     });
@@ -73,8 +77,12 @@ export async function generateMealPlan(pool: Pool, requestedDays: unknown): Prom
       c,
       newMissing: c.missingIngredients.filter((m) => !cumulativeMissing.has(m.toLowerCase())).length,
     }));
+    // Same tie-breaking rule as the urgent phase: minimizing new shopping
+    // stays the primary objective, preference only decides between
+    // otherwise-equally-good picks.
     scored.sort((a, b) => {
       if (a.newMissing !== b.newMissing) return a.newMissing - b.newMissing;
+      if (b.c.preferenceScore !== a.c.preferenceScore) return b.c.preferenceScore - a.c.preferenceScore;
       if (a.c.missingCount !== b.c.missingCount) return a.c.missingCount - b.c.missingCount;
       return a.c.name.localeCompare(b.c.name);
     });

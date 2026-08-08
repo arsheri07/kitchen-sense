@@ -828,6 +828,15 @@
       <textarea id="prefAvoidInput" class="pref-avoid-input" placeholder="e.g. cilantro, shellfish, mushrooms"></textarea>
       <div class="pref-hint">Comma or newline separated. Any recipe using one of these is excluded.</div>
 
+      <div class="pref-group-label">Taste &amp; nutrition</div>
+      <label class="pref-checkbox">
+        <input type="checkbox" id="prefHighProtein" />
+        Prefer high-protein recipes
+      </label>
+      <div class="pref-hint" style="margin-bottom:10px;">Ranking only — these never hide a recipe, they just move better matches higher. Everything else stays visible.</div>
+      <div class="pref-group-label" style="margin-top:2px;">Favorite proteins</div>
+      <div class="pref-restrictions" id="prefProteins"></div>
+
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost btn-sm" id="settingsCancelBtn">Cancel</button>
         <button type="button" class="btn btn-primary btn-sm" id="settingsSaveBtn">Save preferences</button>
@@ -855,6 +864,17 @@ const DIETARY_RESTRICTIONS = [
   { value: 'gluten-free', label: 'Gluten-free' },
   { value: 'dairy-free', label: 'Dairy-free' },
   { value: 'nut-free', label: 'Nut-free' },
+];
+
+/* ============ Favorite protein types (kept in sync by hand with src/preferences.ts) ============ */
+const PROTEIN_TYPES = [
+  { value: 'chicken', label: 'Chicken' },
+  { value: 'beef', label: 'Beef' },
+  { value: 'fish', label: 'Fish' },
+  { value: 'shrimp', label: 'Shrimp' },
+  { value: 'egg', label: 'Egg' },
+  { value: 'tofu', label: 'Tofu' },
+  { value: 'legumes', label: 'Legumes (beans, lentils, chickpeas)' },
 ];
 
 /* ============ Element refs ============ */
@@ -904,6 +924,8 @@ const settingsCancelBtn = document.getElementById('settingsCancelBtn');
 const settingsSaveBtn = document.getElementById('settingsSaveBtn');
 const prefRestrictionsEl = document.getElementById('prefRestrictions');
 const prefAvoidInput = document.getElementById('prefAvoidInput');
+const prefHighProtein = document.getElementById('prefHighProtein');
+const prefProteinsEl = document.getElementById('prefProteins');
 
 /* ============ Cook Mode element refs ============ */
 const cookModeOverlay = document.getElementById('cookModeOverlay');
@@ -1311,7 +1333,7 @@ let lastInventoryItems = [];
 
 async function loadInventory() {
   try {
-    const res = await fetch('/api/inventory');
+    const res = await fetch('/api/inventory', { cache: 'no-store' });
     const data = await res.json();
     lastInventoryItems = data.items || [];
     statTotal.textContent = lastInventoryItems.length;
@@ -1341,7 +1363,7 @@ async function loadInventory() {
 /* ============ Use soon (drives badges, no longer a standalone panel) ============ */
 async function loadUseSoon() {
   try {
-    const res = await fetch('/api/inventory/use-soon');
+    const res = await fetch('/api/inventory/use-soon', { cache: 'no-store' });
     const data = await res.json();
     const items = data.items || [];
     latestUseSoonIds = new Set(items.map((it) => it.id));
@@ -1486,7 +1508,7 @@ async function loadRecipeDetail(cardEl, recipeId) {
 
 async function loadRecipeMatches() {
   try {
-    const res = await fetch('/api/recipes/match');
+    const res = await fetch('/api/recipes/match', { cache: 'no-store' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
 
@@ -1648,7 +1670,7 @@ shoppingViewToggle.querySelectorAll('.view-toggle-btn').forEach((btn) => {
 
 async function loadShoppingList() {
   try {
-    const res = await fetch('/api/shopping-list');
+    const res = await fetch('/api/shopping-list', { cache: 'no-store' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
 
@@ -1739,7 +1761,7 @@ function mealPlanDayCard(day) {
 
 async function loadMealPlan() {
   try {
-    const res = await fetch('/api/meal-plan');
+    const res = await fetch('/api/meal-plan', { cache: 'no-store' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
 
@@ -2001,10 +2023,18 @@ prefRestrictionsEl.innerHTML = DIETARY_RESTRICTIONS.map(
     </label>`,
 ).join('');
 
+prefProteinsEl.innerHTML = PROTEIN_TYPES.map(
+  (p) => `
+    <label class="pref-checkbox">
+      <input type="checkbox" value="${p.value}" />
+      ${p.label}
+    </label>`,
+).join('');
+
 async function openSettings() {
   settingsOverlay.hidden = false;
   try {
-    const res = await fetch('/api/preferences');
+    const res = await fetch('/api/preferences', { cache: 'no-store' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
     const restrictions = data.restrictions || [];
@@ -2012,6 +2042,11 @@ async function openSettings() {
       cb.checked = restrictions.includes(cb.value);
     });
     prefAvoidInput.value = (data.avoidTerms || []).join(', ');
+    prefHighProtein.checked = !!data.highProtein;
+    const favoriteProteins = data.favoriteProteins || [];
+    prefProteinsEl.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+      cb.checked = favoriteProteins.includes(cb.value);
+    });
   } catch (err) {
     setStatus(`Failed to load preferences: ${err.message}`, true);
   }
@@ -2034,6 +2069,8 @@ settingsSaveBtn.addEventListener('click', async () => {
     .split(/[,\n]/)
     .map((s) => s.trim())
     .filter(Boolean);
+  const highProtein = prefHighProtein.checked;
+  const favoriteProteins = Array.from(prefProteinsEl.querySelectorAll('input[type="checkbox"]:checked')).map((cb) => cb.value);
 
   settingsSaveBtn.disabled = true;
   settingsSaveBtn.textContent = 'Saving…';
@@ -2041,7 +2078,7 @@ settingsSaveBtn.addEventListener('click', async () => {
     const res = await fetch('/api/preferences', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ restrictions, avoidTerms }),
+      body: JSON.stringify({ restrictions, avoidTerms, highProtein, favoriteProteins }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);

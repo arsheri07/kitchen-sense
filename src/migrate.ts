@@ -1,5 +1,5 @@
 import { Client } from 'pg';
-import { SEED_RECIPES, deriveDietaryTags } from './seedRecipes';
+import { SEED_RECIPES, deriveDietaryTags, deriveProteinTypes } from './seedRecipes';
 
 async function migrate(): Promise<void> {
   const client = new Client({
@@ -84,9 +84,17 @@ async function migrate(): Promise<void> {
     await client.query(`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS photo_url TEXT`);
 
     // Dietary restrictions this recipe satisfies (vegetarian/vegan/
-    // gluten-free/dairy-free/nut-free) — derived from ingredients at seed
-    // time below, not hand-authored, so it can't drift out of sync.
+    // gluten-free/dairy-free/nut-free), plus a coarse 'high-protein' tag —
+    // derived from ingredients at seed time below, not hand-authored, so
+    // it can't drift out of sync.
     await client.query(`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS dietary_tags TEXT[] DEFAULT '{}'`);
+
+    // Canonical protein types this recipe features (chicken/beef/fish/
+    // shrimp/egg/tofu/legumes) — used to rank recipes higher when they
+    // use a protein the user marked as a favorite. Soft ranking signal,
+    // not a filter: unlike dietary_tags/restrictions, no recipe is ever
+    // excluded for missing a favorite protein.
+    await client.query(`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS protein_types TEXT[] DEFAULT '{}'`);
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS recipe_ingredients (
@@ -147,10 +155,10 @@ async function migrate(): Promise<void> {
       )
     `);
 
-    // Singleton row (id = 1): dietary restrictions + free-text avoid terms,
-    // applied everywhere recipes are surfaced (matching, meal plan,
-    // suggestions). Seeded once with no restrictions — never overwritten
-    // on subsequent migration runs.
+    // Singleton row (id = 1): dietary restrictions + free-text avoid terms
+    // (hard filters), applied everywhere recipes are surfaced (matching,
+    // meal plan, suggestions). Seeded once with no restrictions — never
+    // overwritten on subsequent migration runs.
     await client.query(`
       CREATE TABLE IF NOT EXISTS preferences (
         id          INTEGER PRIMARY KEY DEFAULT 1,
@@ -162,18 +170,27 @@ async function migrate(): Promise<void> {
     `);
     await client.query(`INSERT INTO preferences (id) VALUES (1) ON CONFLICT (id) DO NOTHING`);
 
+    // Soft taste/nutrition signals — these never exclude a recipe the way
+    // restrictions/avoid_terms do. They only influence ranking: a matching
+    // recipe sorts higher, a non-matching one stays visible just lower.
+    await client.query(`ALTER TABLE preferences ADD COLUMN IF NOT EXISTS high_protein BOOLEAN NOT NULL DEFAULT false`);
+    await client.query(`ALTER TABLE preferences ADD COLUMN IF NOT EXISTS favorite_proteins TEXT[] NOT NULL DEFAULT '{}'`);
+
     // Seed (or re-sync) the recipe catalog. Upserting on the unique name
     // and re-inserting ingredients fresh each run keeps this idempotent —
     // safe to run on every deploy, and edits to SEED_RECIPES take effect
     // on the next one.
     for (const recipe of SEED_RECIPES) {
+      const proteinTypes = deriveProteinTypes(recipe.ingredients);
       const dietaryTags = deriveDietaryTags(recipe.ingredients);
+      if (proteinTypes.length > 0) dietaryTags.push('high-protein');
+
       const result = await client.query<{ id: number }>(
-        `INSERT INTO recipes (name, description, steps, dietary_tags)
-         VALUES ($1, $2, $3, $4)
-         ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description, steps = EXCLUDED.steps, dietary_tags = EXCLUDED.dietary_tags
+        `INSERT INTO recipes (name, description, steps, dietary_tags, protein_types)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description, steps = EXCLUDED.steps, dietary_tags = EXCLUDED.dietary_tags, protein_types = EXCLUDED.protein_types
          RETURNING id`,
-        [recipe.name, recipe.description, recipe.steps, dietaryTags],
+        [recipe.name, recipe.description, recipe.steps, dietaryTags, proteinTypes],
       );
       const recipeId = result.rows[0].id;
 

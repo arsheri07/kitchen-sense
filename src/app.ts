@@ -18,7 +18,7 @@ import {
 import { generateMealPlan, getMealPlan } from './mealPlan';
 import { UnsupportedFileTypeError, ImageProcessingError } from './errors';
 import { VALID_CATEGORY_VALUES } from './categories';
-import { getPreferences, setPreferences, DIETARY_RESTRICTIONS } from './preferences';
+import { getPreferences, setPreferences, DIETARY_RESTRICTIONS, PROTEIN_TYPES } from './preferences';
 import { getBestRecipeToCook } from './suggest';
 
 const USE_SOON_WINDOW_DAYS = 3;
@@ -252,17 +252,22 @@ app.post('/api/inventory/:id/reanalyze', async (req, res) => {
   }
 });
 
-// Clears the whole inventory plus any shopping list state (it was derived
-// from recipe matches against that inventory, so it's stale the moment
-// the inventory is gone) — a clean slate for testing a fresh scan.
-// Confirmation happens client-side; this endpoint just executes.
+// Clears the whole inventory plus any shopping list state AND the stored
+// meal plan — both were derived from recipe matches against that
+// inventory, so both are stale the moment the inventory is gone. Leaving
+// the meal plan in place was a bug: its days keep pointing at whatever
+// recipes were picked against the old inventory, so the Meal Plan tab
+// kept showing a plan built from data that no longer exists. Confirmation
+// happens client-side; this endpoint just executes.
 app.delete('/api/inventory', async (_req, res) => {
   try {
     const itemsResult = await pool.query('DELETE FROM inventory_items');
     const shoppingResult = await pool.query('DELETE FROM shopping_list_items');
+    const mealPlanResult = await pool.query('DELETE FROM meal_plan_days');
     res.status(200).json({
       itemsRemoved: itemsResult.rowCount ?? 0,
       shoppingListItemsRemoved: shoppingResult.rowCount ?? 0,
+      mealPlanDaysRemoved: mealPlanResult.rowCount ?? 0,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -356,14 +361,16 @@ app.delete('/api/inventory/:id', async (req, res) => {
   }
 });
 
-// Dietary preferences (structured restrictions + free-text avoid terms).
-// Applied inside matchRecipes() itself, so every surface built on top of
-// it — the match lists below, the meal planner, and the cook suggestion —
-// automatically respects whatever is saved here.
+// Dietary preferences: hard restrictions + free-text avoid terms (exclude
+// outright) plus soft taste/nutrition signals — high-protein and favorite
+// protein types (rank higher, never exclude). Applied inside
+// matchRecipes() itself, so every surface built on top of it — the match
+// lists below, the meal planner, and the cook suggestion — automatically
+// respects and ranks by whatever is saved here.
 app.get('/api/preferences', async (_req, res) => {
   try {
     const prefs = await getPreferences(pool);
-    res.status(200).json({ ...prefs, availableRestrictions: DIETARY_RESTRICTIONS });
+    res.status(200).json({ ...prefs, availableRestrictions: DIETARY_RESTRICTIONS, availableProteinTypes: PROTEIN_TYPES });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     res.status(503).json({ error: message });
@@ -373,7 +380,12 @@ app.get('/api/preferences', async (_req, res) => {
 app.put('/api/preferences', async (req, res) => {
   try {
     const body = req.body ?? {};
-    const prefs = await setPreferences(pool, { restrictions: body.restrictions, avoidTerms: body.avoidTerms });
+    const prefs = await setPreferences(pool, {
+      restrictions: body.restrictions,
+      avoidTerms: body.avoidTerms,
+      highProtein: body.highProtein,
+      favoriteProteins: body.favoriteProteins,
+    });
     res.status(200).json(prefs);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

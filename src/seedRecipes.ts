@@ -61,6 +61,36 @@ export function deriveDietaryTags(ingredients: SeedIngredient[]): string[] {
   return tags;
 }
 
+// Canonical protein type a recipe is considered to feature, keyed by exact
+// ingredient match term — used for the "favorite proteins" preference
+// (rank recipes using a protein the user favors higher) and to derive a
+// coarse "high-protein" tag (any recognized protein source present at
+// all). This is a heuristic, not real nutrition data: no macro counts are
+// available, so "high protein" means "features a recognized protein
+// source" rather than a gram threshold.
+const PROTEIN_TYPE_MAP: Record<string, string> = {
+  chicken: 'chicken',
+  beef: 'beef',
+  steak: 'beef',
+  shrimp: 'shrimp',
+  salmon: 'fish',
+  fish: 'fish',
+  egg: 'egg',
+  tofu: 'tofu',
+  chickpea: 'legumes',
+  lentil: 'legumes',
+  can: 'legumes', // "Canned beans" — the only recipes using the bare 'can' match term
+};
+
+export function deriveProteinTypes(ingredients: SeedIngredient[]): string[] {
+  const types = new Set<string>();
+  for (const ingredient of ingredients) {
+    const type = PROTEIN_TYPE_MAP[ingredient.matchTerm.toLowerCase()];
+    if (type) types.add(type);
+  }
+  return Array.from(types);
+}
+
 // A mix of simple (2-3 common ingredients) and more complex recipes, so a
 // small starter inventory has a realistic shot at fully matching several
 // of them while others land as close-but-missing-a-few.
