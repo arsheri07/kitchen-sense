@@ -322,8 +322,27 @@
   .category-content-inner { overflow: hidden; }
   .category-body { border-top: 1px solid var(--border); padding: 4px 14px 8px; }
 
-  .item-row { padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .item-row { border-bottom: 1px solid var(--border); }
   .item-row:last-child { border-bottom: none; }
+
+  /* --- collapsed summary: name + qty only --- */
+  .item-summary {
+    width: 100%; display: flex; align-items: center; gap: 9px;
+    padding: 11px 2px; background: none; border: none; text-align: left;
+    transition: background 0.15s ease;
+  }
+  .item-summary:hover { background: var(--surface-2); }
+  .item-summary .chevron { width: 12px; height: 12px; color: var(--text-faint); flex-shrink: 0; transition: transform 0.22s ease; }
+  .item-row.expanded .item-summary .chevron { transform: rotate(90deg); }
+  .item-name-display { flex: 1; font-size: 14px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item-qty-display { font-size: 12.5px; color: var(--text-muted); flex-shrink: 0; }
+
+  /* --- expanded detail: category / qty / expiry / actions --- */
+  .item-detail { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.24s ease; }
+  .item-row.expanded .item-detail { grid-template-rows: 1fr; }
+  .item-detail-inner { overflow: hidden; }
+  .item-detail-body { padding: 2px 2px 14px 23px; }
+
   .item-top { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
   .item-top .name {
     flex: 1; border: 1px solid transparent; background: none; padding: 4px 6px; margin: -4px -6px;
@@ -331,7 +350,7 @@
     transition: border-color 0.15s ease, background 0.15s ease;
   }
   .item-top .name:hover, .item-top .name:focus { border-color: var(--border); background: var(--surface-2); }
-  .item-fields { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 9px; }
+  .item-fields { display: flex; gap: 14px; flex-wrap: wrap; }
   .field { display: flex; flex-direction: column; gap: 3px; }
   .field-label { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); }
   .field-row { display: flex; gap: 6px; }
@@ -343,7 +362,7 @@
   .item-fields .unit { width: 64px; }
   .item-fields .category { min-width: 128px; }
   .item-fields .expiry { min-width: 132px; font-family: var(--font-mono); }
-  .expiry-inline-badge { font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 100px; align-self: flex-start; margin-top: 2px; }
+  .expiry-inline-badge { font-family: var(--font-mono); font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 100px; flex-shrink: 0; }
   .expiry-inline-badge.warn { background: var(--warn-wash); color: var(--warn); }
   .item-actions { display: flex; gap: 6px; }
 
@@ -654,39 +673,59 @@ function itemRow(item) {
   const expiryValue = item.expiry_date ? String(item.expiry_date).slice(0, 10) : '';
   const isUseSoon = latestUseSoonIds.has(item.id);
 
+  // Second collapse layer: default view is name + quantity only. Tapping
+  // it reveals category/expiry/edit controls — nothing more shows until
+  // that deliberate click.
   row.innerHTML = `
-    <div class="item-top">
-      <input class="name" value="${escapeAttr(item.name)}" />
-      <button class="btn btn-icon btn-danger-ghost del" title="Delete" aria-label="Delete ${escapeAttr(item.name)}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2m2 0-.8 12.1a2 2 0 0 1-2 1.9H8.8a2 2 0 0 1-2-1.9L6 7"/></svg>
-      </button>
-    </div>
-    <div class="item-fields">
-      <span class="field">
-        <span class="field-label">Category</span>
-        <select class="category">
-          ${CATEGORIES.map((c) => `<option value="${c.value}" ${c.value === item.category ? 'selected' : ''}>${c.label}</option>`).join('')}
-        </select>
-      </span>
-      <span class="field">
-        <span class="field-label">Quantity</span>
-        <span class="field-row">
-          <input class="qty mono" type="number" step="any" value="${item.quantity}" />
-          <input class="unit" value="${escapeAttr(item.unit)}" />
-        </span>
-      </span>
-      <span class="field">
-        <span class="field-label">Expiry</span>
-        <input class="expiry" type="date" value="${expiryValue}" />
-        ${isUseSoon ? '<span class="expiry-inline-badge warn">use soon</span>' : ''}
-      </span>
-      <span class="field" style="justify-content:flex-end;">
-        <span class="field-label">&nbsp;</span>
-        <button type="button" class="btn btn-ghost btn-sm save">Save</button>
-      </span>
+    <button type="button" class="item-summary" aria-expanded="false">
+      <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      <span class="item-name-display">${escapeAttr(item.name)}</span>
+      <span class="item-qty-display mono">${item.quantity} ${escapeAttr(item.unit)}</span>
+      ${isUseSoon ? '<span class="expiry-inline-badge warn">use soon</span>' : ''}
+    </button>
+    <div class="item-detail" inert>
+      <div class="item-detail-inner">
+        <div class="item-detail-body">
+          <div class="item-top">
+            <input class="name" value="${escapeAttr(item.name)}" />
+            <button class="btn btn-icon btn-danger-ghost del" title="Delete" aria-label="Delete ${escapeAttr(item.name)}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2m2 0-.8 12.1a2 2 0 0 1-2 1.9H8.8a2 2 0 0 1-2-1.9L6 7"/></svg>
+            </button>
+          </div>
+          <div class="item-fields">
+            <span class="field">
+              <span class="field-label">Category</span>
+              <select class="category">
+                ${CATEGORIES.map((c) => `<option value="${c.value}" ${c.value === item.category ? 'selected' : ''}>${c.label}</option>`).join('')}
+              </select>
+            </span>
+            <span class="field">
+              <span class="field-label">Quantity</span>
+              <span class="field-row">
+                <input class="qty mono" type="number" step="any" value="${item.quantity}" />
+                <input class="unit" value="${escapeAttr(item.unit)}" />
+              </span>
+            </span>
+            <span class="field">
+              <span class="field-label">Expiry</span>
+              <input class="expiry" type="date" value="${expiryValue}" />
+            </span>
+            <span class="field" style="justify-content:flex-end;">
+              <span class="field-label">&nbsp;</span>
+              <button type="button" class="btn btn-ghost btn-sm save">Save</button>
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   `;
 
+  row.querySelector('.item-summary').addEventListener('click', () => {
+    const nowExpanded = !row.classList.contains('expanded');
+    row.classList.toggle('expanded', nowExpanded);
+    row.querySelector('.item-summary').setAttribute('aria-expanded', String(nowExpanded));
+    row.querySelector('.item-detail').toggleAttribute('inert', !nowExpanded);
+  });
   row.querySelector('.save').addEventListener('click', () => saveItem(row));
   row.querySelector('.del').addEventListener('click', () => deleteItem(row));
 
@@ -695,7 +734,10 @@ function itemRow(item) {
 
 function categorySection(categoryDef, items) {
   const hasUseSoon = items.some((it) => latestUseSoonIds.has(it.id));
-  const expanded = categoryOverride.has(categoryDef.value) ? categoryOverride.get(categoryDef.value) : hasUseSoon;
+  // First-load minimalism: nothing auto-expands, even a use-soon category
+  // — the badge on its (collapsed) header is enough to flag it. A category
+  // only opens from an explicit click, remembered for the session.
+  const expanded = categoryOverride.has(categoryDef.value) ? categoryOverride.get(categoryDef.value) : false;
 
   const section = document.createElement('div');
   section.className = 'category-group' + (expanded ? ' expanded' : '');
