@@ -6,7 +6,7 @@ import { uploadPhoto } from './storage';
 import { identifyItems } from './vision';
 import { matchRecipes } from './recipeMatch';
 import { estimateExpiryDate } from './expiry';
-import { listShoppingList, generateFromRecipe, setChecked, deleteShoppingItem, clearChecked } from './shoppingList';
+import { listShoppingList, generateFromRecipe, addManualItem, setChecked, deleteShoppingItem, clearChecked } from './shoppingList';
 import { UnsupportedFileTypeError, ImageProcessingError } from './errors';
 import { VALID_CATEGORY_VALUES } from './categories';
 
@@ -101,16 +101,41 @@ app.post('/api/inventory/scan', upload.single('photo'), async (req, res) => {
 
     const inserted = [];
     for (const item of items) {
-      // No expiry comes back from the vision call — seed a per-category
-      // estimate so the item is immediately eligible for "use soon".
-      const expiryDate = estimateExpiryDate(item.category);
-      const result = await pool.query(
-        `INSERT INTO inventory_items (name, quantity, unit, category, photo_key, expiry_date)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         RETURNING id, name, quantity, unit, category, photo_key, expiry_date, created_at, updated_at`,
-        [item.name, item.quantity, item.unit, item.category, photoKey, expiryDate],
-      );
-      inserted.push(result.rows[0]);
+      // Re-scanning the same fridge/pantry commonly re-detects items
+      // already tracked — merge into the existing row (case-insensitive
+      // exact name match) instead of creating a duplicate. The new scan
+      // reflects what's there right now, so quantity/unit/category/photo
+      // are refreshed to this observation; an existing expiry estimate is
+      // left as-is rather than overwritten just because the item was
+      // seen again (don't clobber a manual edit). Checking the DB before
+      // each insert (not batching) also naturally merges duplicate names
+      // detected within this same scan.
+      const existing = await pool.query<{ id: number }>('SELECT id FROM inventory_items WHERE lower(name) = lower($1) LIMIT 1', [
+        item.name,
+      ]);
+
+      let result;
+      const merged = existing.rows.length > 0;
+      if (merged) {
+        result = await pool.query(
+          `UPDATE inventory_items
+           SET quantity = $1, unit = $2, category = $3, photo_key = $4, updated_at = now()
+           WHERE id = $5
+           RETURNING id, name, quantity, unit, category, photo_key, expiry_date, created_at, updated_at`,
+          [item.quantity, item.unit, item.category, photoKey, existing.rows[0].id],
+        );
+      } else {
+        // No expiry comes back from the vision call — seed a per-category
+        // estimate so the item is immediately eligible for "use soon".
+        const expiryDate = estimateExpiryDate(item.category);
+        result = await pool.query(
+          `INSERT INTO inventory_items (name, quantity, unit, category, photo_key, expiry_date)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           RETURNING id, name, quantity, unit, category, photo_key, expiry_date, created_at, updated_at`,
+          [item.name, item.quantity, item.unit, item.category, photoKey, expiryDate],
+        );
+      }
+      inserted.push({ ...result.rows[0], merged });
     }
 
     res.status(201).json({
@@ -157,6 +182,25 @@ app.post('/api/inventory', async (req, res) => {
     const message = err instanceof Error ? err.message : String(err);
     console.error('Manual add failed:', message);
     res.status(500).json({ error: 'Failed to add item. Please try again.' });
+  }
+});
+
+// Clears the whole inventory plus any shopping list state (it was derived
+// from recipe matches against that inventory, so it's stale the moment
+// the inventory is gone) — a clean slate for testing a fresh scan.
+// Confirmation happens client-side; this endpoint just executes.
+app.delete('/api/inventory', async (_req, res) => {
+  try {
+    const itemsResult = await pool.query('DELETE FROM inventory_items');
+    const shoppingResult = await pool.query('DELETE FROM shopping_list_items');
+    res.status(200).json({
+      itemsRemoved: itemsResult.rowCount ?? 0,
+      shoppingListItemsRemoved: shoppingResult.rowCount ?? 0,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Reset inventory failed:', message);
+    res.status(500).json({ error: 'Failed to reset inventory. Please try again.' });
   }
 });
 
@@ -271,6 +315,30 @@ app.post('/api/shopping-list/generate', async (req, res) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     res.status(503).json({ error: message });
+  }
+});
+
+// User-typed addition, independent of any recipe — kept separate from
+// /generate so the frontend can show a plain text input.
+app.post('/api/shopping-list', async (req, res) => {
+  try {
+    const name = typeof req.body?.ingredientName === 'string' ? req.body.ingredientName.trim().slice(0, 200) : '';
+    if (!name) {
+      res.status(400).json({ error: 'Item name is required.' });
+      return;
+    }
+
+    const item = await addManualItem(pool, name);
+    if (!item) {
+      res.status(200).json({ item: null, message: 'Already on the list.' });
+      return;
+    }
+
+    res.status(201).json({ item });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Manual shopping-list add failed:', message);
+    res.status(500).json({ error: 'Failed to add item. Please try again.' });
   }
 });
 

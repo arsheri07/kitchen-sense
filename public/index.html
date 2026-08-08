@@ -251,6 +251,15 @@
   #status { font-size: 12.5px; margin-top: 10px; color: var(--text-muted); min-height: 16px; line-height: 1.5; }
   #status.err { color: var(--warn); }
 
+  .sample-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-top: 10px; }
+  .sample-label { font-size: 11.5px; color: var(--text-faint); font-weight: 600; }
+
+  /* ============ Inventory toolbar (reset) ============ */
+  .inventory-toolbar { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+  .confirm-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-muted); }
+  .btn-danger { background: var(--warn); border-color: var(--warn); color: #1a0d0a; }
+  .btn-danger:hover { filter: brightness(1.08); }
+
   /* ============ Manual add toggle ============ */
   .manual-add-toggle {
     width: 100%; text-align: left; background: none; border: none;
@@ -277,7 +286,7 @@
     padding: 8px 9px; font-size: 13px; background: var(--surface-2); color: var(--text);
     min-width: 0; width: 100%;
   }
-  @media (max-width: 560px) {
+  @media (max-width: 600px) {
     .manual-add-form { grid-template-columns: 1fr 1fr; }
     .manual-add-form button { grid-column: 1 / -1; }
   }
@@ -306,8 +315,8 @@
   .category-header:hover { background: var(--surface-2); }
   .category-header .chevron { width: 15px; height: 15px; color: var(--text-faint); transition: transform 0.25s ease; flex-shrink: 0; }
   .category-group.expanded .category-header .chevron { transform: rotate(90deg); }
-  .category-name { font-weight: 700; font-size: 14px; flex-shrink: 0; }
-  .category-count { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); }
+  .category-name { font-weight: 700; font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .category-count { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
   .use-soon-badge {
     margin-left: auto;
     display: inline-flex; align-items: center; gap: 5px;
@@ -392,8 +401,40 @@
   .shop-item input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--accent); flex-shrink: 0; }
   .shop-item .label { flex: 1; font-size: 14px; font-weight: 500; }
   .shop-item.checked .label { text-decoration: line-through; color: var(--text-faint); }
-  .shop-item .source { color: var(--text-faint); font-size: 11px; }
+  .source-tag {
+    font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    padding: 2px 8px; border-radius: 100px; flex-shrink: 0; white-space: nowrap;
+    max-width: 120px; overflow: hidden; text-overflow: ellipsis;
+  }
+  .source-tag.recipe { background: var(--surface-2); color: var(--text-muted); }
+  .source-tag.manual { background: var(--accent-wash); color: var(--accent); }
   .shopping-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 6px 14px; box-shadow: var(--shadow-card); }
+
+  /* ============ Mobile ============ */
+  @media (max-width: 600px) {
+    .header-inner { padding: 12px 14px 0; }
+    main { padding: 16px 14px 72px; }
+    .tagline { display: none; }
+    .summary-strip { gap: 6px; margin: 12px 0 10px; }
+    .stat { padding: 7px 9px; }
+    .stat-value { font-size: 16px; }
+    .stat-label { font-size: 9px; letter-spacing: 0.03em; }
+    .tabs { gap: 0; }
+    .tab { font-size: 12px; padding: 9px 2px 10px; gap: 4px; }
+    .tab svg { width: 14px; height: 14px; }
+    .tab .tab-badge { padding: 1px 5px; font-size: 10px; }
+    .scan-card { padding: 14px; }
+    .scan-controls { flex-direction: column; align-items: stretch; }
+    .file-btn { flex: none; }
+    .sample-row { justify-content: flex-start; }
+    .category-header { padding: 12px 11px; gap: 8px; }
+    .category-name { font-size: 13.5px; }
+    .use-soon-badge { font-size: 10px; padding: 2px 7px; }
+    .item-detail-body { padding-left: 16px; }
+    .item-fields { gap: 10px 12px; }
+    .item-fields .category, .item-fields .expiry { min-width: 0; flex: 1 1 120px; }
+    .recipe-top { flex-direction: column; align-items: flex-start; gap: 6px; }
+  }
 </style>
 </head>
 <body>
@@ -447,6 +488,15 @@
   <main>
     <!-- ===================== INVENTORY ===================== -->
     <section id="tab-inventory" class="tab-panel active" role="tabpanel">
+      <div class="inventory-toolbar">
+        <div id="resetInventoryWrap">
+          <button type="button" id="resetInventoryBtn" class="btn btn-ghost btn-sm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>
+            Reset inventory
+          </button>
+        </div>
+      </div>
+
       <div class="scan-card">
         <div class="scan-frame" id="scanFrame">
           <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
@@ -468,6 +518,11 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2M20 8V6a2 2 0 0 0-2-2h-2M20 16v2a2 2 0 0 1-2 2h-2"/><circle cx="12" cy="12" r="3"/></svg>
             Scan photo
           </button>
+        </div>
+        <div class="sample-row">
+          <span class="sample-label">Try a sample:</span>
+          <button type="button" class="btn btn-ghost btn-sm sample-btn" data-sample="/samples/fridge-open.jpg" data-name="fridge-open.jpg">Fridge</button>
+          <button type="button" class="btn btn-ghost btn-sm sample-btn" data-sample="/samples/pantry-shelf.jpg" data-name="pantry-shelf.jpg">Pantry shelf</button>
         </div>
         <div id="status"></div>
       </div>
@@ -509,6 +564,10 @@
         <div class="section-heading" style="margin:0;">Shopping list</div>
         <button id="clearCheckedBtn" class="btn btn-ghost btn-sm">Clear checked</button>
       </div>
+      <form id="addShoppingForm" class="upload-row" style="margin-bottom:12px;">
+        <input id="addShoppingName" placeholder="Add an item (e.g. paper towels)" style="flex:1; min-width:120px;" />
+        <button type="submit" class="btn btn-ghost btn-sm">Add</button>
+      </form>
       <div class="shopping-card">
         <div id="shoppingList"><div class="empty">Loading…</div></div>
       </div>
@@ -554,6 +613,9 @@ const statTotal = document.getElementById('statTotal');
 const statReady = document.getElementById('statReady');
 const statUseSoon = document.getElementById('statUseSoon');
 const statUseSoonWrap = document.getElementById('statUseSoonWrap');
+const resetInventoryWrap = document.getElementById('resetInventoryWrap');
+const addShoppingForm = document.getElementById('addShoppingForm');
+const addShoppingName = document.getElementById('addShoppingName');
 
 addCategory.innerHTML = CATEGORIES.map((c) => `<option value="${c.value}">${c.label}</option>`).join('');
 
@@ -573,6 +635,43 @@ manualAddToggle.addEventListener('click', () => {
   const open = addItemForm.classList.toggle('open');
   manualAddToggle.classList.toggle('open', open);
 });
+
+/* ============ Reset inventory (two-step confirm, no accidental trigger) ============ */
+function renderResetButton() {
+  resetInventoryWrap.innerHTML = `
+    <button type="button" id="resetInventoryBtn" class="btn btn-ghost btn-sm">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>
+      Reset inventory
+    </button>
+  `;
+  resetInventoryWrap.querySelector('#resetInventoryBtn').addEventListener('click', renderResetConfirm);
+}
+
+function renderResetConfirm() {
+  resetInventoryWrap.innerHTML = `
+    <div class="confirm-row">
+      Clear all items and the shopping list?
+      <button type="button" class="btn btn-danger btn-sm" id="resetConfirmBtn">Yes, reset</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="resetCancelBtn">Cancel</button>
+    </div>
+  `;
+  resetInventoryWrap.querySelector('#resetCancelBtn').addEventListener('click', renderResetButton);
+  resetInventoryWrap.querySelector('#resetConfirmBtn').addEventListener('click', async () => {
+    try {
+      const res = await fetch('/api/inventory', { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+      setStatus('Inventory reset — scan a fresh photo to get started.');
+      await refreshAll();
+    } catch (err) {
+      setStatus(err.message, true);
+    } finally {
+      renderResetButton();
+    }
+  });
+}
+
+renderResetButton();
 
 /* ============ Scan ============ */
 photoInput.addEventListener('change', () => {
@@ -596,10 +695,7 @@ function escapeAttr(str) {
   return String(str).replace(/"/g, '&quot;');
 }
 
-scanBtn.addEventListener('click', async () => {
-  const file = photoInput.files[0];
-  if (!file) return;
-
+async function runScan(file) {
   scanBtn.disabled = true;
   setStatus('Scanning photo — identifying items…');
 
@@ -616,7 +712,12 @@ scanBtn.addEventListener('click', async () => {
       const prefix = foundCount > 0 ? `Found ${foundCount} item(s). ` : '';
       setStatus(prefix + data.message, foundCount === 0);
     } else {
-      setStatus(`Found ${data.items.length} item(s).`);
+      const mergedCount = data.items.filter((it) => it.merged).length;
+      const newCount = data.items.length - mergedCount;
+      const parts = [];
+      if (newCount > 0) parts.push(`${newCount} new`);
+      if (mergedCount > 0) parts.push(`${mergedCount} updated (already tracked)`);
+      setStatus(`Found ${data.items.length} item(s) — ${parts.join(', ')}.`);
     }
     photoInput.value = '';
     fileLabel.textContent = 'Choose photo';
@@ -627,6 +728,32 @@ scanBtn.addEventListener('click', async () => {
   } finally {
     scanBtn.disabled = !photoInput.files[0];
   }
+}
+
+scanBtn.addEventListener('click', () => {
+  const file = photoInput.files[0];
+  if (file) runScan(file);
+});
+
+/* ============ Sample photos ============ */
+document.querySelectorAll('.sample-btn').forEach((btn) => {
+  btn.addEventListener('click', async () => {
+    const url = btn.dataset.sample;
+    const name = btn.dataset.name || 'sample.jpg';
+    btn.disabled = true;
+    setStatus('Loading sample photo…');
+    try {
+      const blob = await (await fetch(url)).blob();
+      const file = new File([blob], name, { type: blob.type || 'image/jpeg' });
+      preview.src = url;
+      scanFrame.classList.add('has-preview');
+      await runScan(file);
+    } catch (err) {
+      setStatus(`Could not load sample photo: ${err.message}`, true);
+    } finally {
+      btn.disabled = false;
+    }
+  });
 });
 
 /* ============ Manual add ============ */
@@ -949,10 +1076,14 @@ function shoppingRow(item) {
   div.className = 'shop-item' + (item.checked ? ' checked' : '');
   div.dataset.id = item.id;
 
+  const sourceTag = item.recipeName
+    ? `<span class="source-tag recipe" title="From recipe: ${escapeAttr(item.recipeName)}">${escapeAttr(item.recipeName)}</span>`
+    : `<span class="source-tag manual" title="Added manually">Manual</span>`;
+
   div.innerHTML = `
     <input type="checkbox" ${item.checked ? 'checked' : ''} aria-label="Mark ${escapeAttr(item.ingredientName)} as picked up" />
     <span class="label">${escapeAttr(item.ingredientName)}</span>
-    ${item.recipeName ? `<span class="source">for ${escapeAttr(item.recipeName)}</span>` : ''}
+    ${sourceTag}
     <button type="button" class="btn btn-icon btn-danger-ghost del" aria-label="Remove ${escapeAttr(item.ingredientName)}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
     </button>
@@ -997,6 +1128,26 @@ async function loadShoppingList() {
 
 clearCheckedBtn.addEventListener('click', async () => {
   await fetch('/api/shopping-list/checked', { method: 'DELETE' });
+  await loadShoppingList();
+});
+
+addShoppingForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = addShoppingName.value.trim();
+  if (!name) return;
+
+  const res = await fetch('/api/shopping-list', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ingredientName: name }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    setStatus(data.error || 'Failed to add item', true);
+    return;
+  }
+
+  addShoppingName.value = '';
   await loadShoppingList();
 });
 

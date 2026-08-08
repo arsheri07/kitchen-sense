@@ -63,6 +63,19 @@ export async function generateFromRecipe(
   return { recipeId: recipe.id, recipeName: recipe.name, added };
 }
 
+// User-typed addition, independent of any recipe — recipe_name stays
+// null so the frontend can visually distinguish it from generated items.
+export async function addManualItem(pool: Pool, ingredientName: string): Promise<ShoppingListItem | null> {
+  const result = await pool.query<Row>(
+    `INSERT INTO shopping_list_items (ingredient_name, recipe_name)
+     VALUES ($1, NULL)
+     ON CONFLICT (lower(ingredient_name)) DO NOTHING
+     RETURNING id, ingredient_name, recipe_name, checked, created_at`,
+    [ingredientName],
+  );
+  return result.rows[0] ? toItem(result.rows[0]) : null;
+}
+
 export async function setChecked(pool: Pool, id: number, checked: boolean): Promise<ShoppingListItem | null> {
   const result = await pool.query<Row>(
     'UPDATE shopping_list_items SET checked = $1 WHERE id = $2 RETURNING id, ingredient_name, recipe_name, checked, created_at',
