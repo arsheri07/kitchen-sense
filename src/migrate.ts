@@ -33,6 +33,15 @@ async function migrate(): Promise<void> {
       ALTER TABLE inventory_items ADD COLUMN IF NOT EXISTS expiry_date DATE
     `);
 
+    // Per-item vision confidence ('high'/'low') — 'low' surfaces a review
+    // flag in the UI instead of silently trusting an uncertain detection.
+    // Manual adds and manually-edited items are always 'high' (a human
+    // reviewed them); existing rows predating this column default to
+    // 'high' too, since they were never flagged either way.
+    await client.query(`
+      ALTER TABLE inventory_items ADD COLUMN IF NOT EXISTS confidence TEXT NOT NULL DEFAULT 'high'
+    `);
+
     // Category taxonomy rename (meat -> protein, grain -> pantry) — safe to
     // run every deploy, becomes a no-op once existing rows are migrated.
     await client.query(`UPDATE inventory_items SET category = 'protein' WHERE category = 'meat'`);

@@ -2,8 +2,8 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import { pool } from './db';
-import { uploadPhoto } from './storage';
-import { identifyItems } from './vision';
+import { uploadPhoto, getPhoto } from './storage';
+import { identifyItems, reanalyzeSingleItem } from './vision';
 import { matchRecipes, getRecipeDetail } from './recipeMatch';
 import { estimateExpiryDate } from './expiry';
 import {
@@ -128,20 +128,20 @@ app.post('/api/inventory/scan', upload.single('photo'), async (req, res) => {
       if (merged) {
         result = await pool.query(
           `UPDATE inventory_items
-           SET quantity = $1, unit = $2, category = $3, photo_key = $4, updated_at = now()
-           WHERE id = $5
-           RETURNING id, name, quantity, unit, category, photo_key, expiry_date, created_at, updated_at`,
-          [item.quantity, item.unit, item.category, photoKey, existing.rows[0].id],
+           SET quantity = $1, unit = $2, category = $3, photo_key = $4, confidence = $5, updated_at = now()
+           WHERE id = $6
+           RETURNING id, name, quantity, unit, category, photo_key, expiry_date, confidence, created_at, updated_at`,
+          [item.quantity, item.unit, item.category, photoKey, item.confidence, existing.rows[0].id],
         );
       } else {
         // No expiry comes back from the vision call — seed a per-category
         // estimate so the item is immediately eligible for "use soon".
         const expiryDate = estimateExpiryDate(item.category);
         result = await pool.query(
-          `INSERT INTO inventory_items (name, quantity, unit, category, photo_key, expiry_date)
-           VALUES ($1, $2, $3, $4, $5, $6)
-           RETURNING id, name, quantity, unit, category, photo_key, expiry_date, created_at, updated_at`,
-          [item.name, item.quantity, item.unit, item.category, photoKey, expiryDate],
+          `INSERT INTO inventory_items (name, quantity, unit, category, photo_key, expiry_date, confidence)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           RETURNING id, name, quantity, unit, category, photo_key, expiry_date, confidence, created_at, updated_at`,
+          [item.name, item.quantity, item.unit, item.category, photoKey, expiryDate, item.confidence],
         );
       }
       inserted.push({ ...result.rows[0], merged });
@@ -179,10 +179,12 @@ app.post('/api/inventory', async (req, res) => {
     const expiryDate =
       typeof body.expiryDate === 'string' && body.expiryDate ? body.expiryDate : estimateExpiryDate(category);
 
+    // Manually typed items are always full-confidence — a human chose the
+    // name and quantity directly, nothing to flag for review.
     const result = await pool.query(
-      `INSERT INTO inventory_items (name, quantity, unit, category, expiry_date)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, name, quantity, unit, category, photo_key, expiry_date, created_at, updated_at`,
+      `INSERT INTO inventory_items (name, quantity, unit, category, expiry_date, confidence)
+       VALUES ($1, $2, $3, $4, $5, 'high')
+       RETURNING id, name, quantity, unit, category, photo_key, expiry_date, confidence, created_at, updated_at`,
       [name, quantity, unit, category, expiryDate],
     );
 
@@ -191,6 +193,60 @@ app.post('/api/inventory', async (req, res) => {
     const message = err instanceof Error ? err.message : String(err);
     console.error('Manual add failed:', message);
     res.status(500).json({ error: 'Failed to add item. Please try again.' });
+  }
+});
+
+// Re-runs vision against a single item's already-stored photo, narrowed to
+// just that item — lets a low-confidence detection get resolved without a
+// full re-scan of everything else already in the inventory. The manual-edit
+// PUT above remains the other correction path for when the user just knows
+// the right answer without needing the model to look again.
+app.post('/api/inventory/:id/reanalyze', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) {
+      res.status(400).json({ error: 'Invalid item id' });
+      return;
+    }
+
+    const itemResult = await pool.query<{ id: number; name: string; photo_key: string | null }>(
+      'SELECT id, name, photo_key FROM inventory_items WHERE id = $1',
+      [id],
+    );
+    if (itemResult.rows.length === 0) {
+      res.status(404).json({ error: 'Item not found' });
+      return;
+    }
+    const { name, photo_key: photoKey } = itemResult.rows[0];
+    if (!photoKey) {
+      res.status(400).json({ error: 'No photo on file for this item — it was added manually. Edit it directly instead.' });
+      return;
+    }
+
+    const photoBuffer = await getPhoto(photoKey);
+    const analysis = await reanalyzeSingleItem(photoBuffer, name);
+
+    if (!analysis.found) {
+      res.status(200).json({
+        found: false,
+        message: analysis.note || `"${name}" was not clearly visible in its photo on a second look. Edit it manually if needed.`,
+      });
+      return;
+    }
+
+    const result = await pool.query(
+      `UPDATE inventory_items
+       SET quantity = $1, unit = $2, confidence = $3, updated_at = now()
+       WHERE id = $4
+       RETURNING id, name, quantity, unit, category, photo_key, expiry_date, confidence, created_at, updated_at`,
+      [analysis.quantity, analysis.unit, analysis.confidence, id],
+    );
+
+    res.status(200).json({ found: true, item: result.rows[0], note: analysis.note });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Item re-analysis failed:', message);
+    res.status(502).json({ error: 'Could not re-analyze this item right now. Try again, or edit it manually.' });
   }
 });
 
@@ -216,7 +272,7 @@ app.delete('/api/inventory', async (_req, res) => {
 app.get('/api/inventory', async (_req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, quantity, unit, category, photo_key, expiry_date, created_at, updated_at FROM inventory_items ORDER BY created_at DESC',
+      'SELECT id, name, quantity, unit, category, photo_key, expiry_date, confidence, created_at, updated_at FROM inventory_items ORDER BY created_at DESC',
     );
     res.status(200).json({ items: result.rows });
   } catch (err) {
@@ -254,6 +310,9 @@ app.put('/api/inventory/:id', async (req, res) => {
     // as null" (explicitly clear it) — COALESCE alone can't do that.
     const hasExpiryDate = Object.prototype.hasOwnProperty.call(body, 'expiryDate');
 
+    // A manual save through the edit form is a human reviewing/correcting
+    // this row directly — always clears any low-confidence review flag,
+    // independent of which fields actually changed.
     const result = await pool.query(
       `UPDATE inventory_items
        SET name = COALESCE($1, name),
@@ -261,9 +320,10 @@ app.put('/api/inventory/:id', async (req, res) => {
            unit = COALESCE($3, unit),
            category = COALESCE($4, category),
            expiry_date = CASE WHEN $6 THEN $5::date ELSE expiry_date END,
+           confidence = 'high',
            updated_at = now()
        WHERE id = $7
-       RETURNING id, name, quantity, unit, category, photo_key, expiry_date, created_at, updated_at`,
+       RETURNING id, name, quantity, unit, category, photo_key, expiry_date, confidence, created_at, updated_at`,
       [name ?? null, quantity ?? null, unit ?? null, category ?? null, expiryDate ?? null, hasExpiryDate, id],
     );
 

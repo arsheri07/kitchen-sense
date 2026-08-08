@@ -456,6 +456,53 @@
   }
   .add-to-list-btn { margin: 10px 0 12px; }
 
+  /* ============ Confidence review flag ============ */
+  .review-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--warn-wash); color: var(--warn);
+    font-size: 10.5px; font-weight: 700;
+    padding: 2px 8px; border-radius: 100px; white-space: nowrap; flex-shrink: 0;
+  }
+  .review-badge svg { width: 10px; height: 10px; }
+  .reanalyze-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .reanalyze-note { font-size: 11.5px; color: var(--text-muted); }
+
+  /* ============ Cook Mode ============ */
+  .cook-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    animation: fade-in 0.18s ease;
+  }
+  .cook-overlay[hidden] { display: none; }
+  .cook-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .cook-recipe-name { font-weight: 800; font-size: 15px; letter-spacing: -0.01em; }
+  .cook-progress { height: 3px; background: var(--surface-2); flex-shrink: 0; }
+  .cook-progress-bar { height: 100%; background: var(--accent); transition: width 0.25s ease; }
+  .cook-body {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 32px 24px; gap: 22px; overflow-y: auto;
+  }
+  .cook-step-label { font-size: 12.5px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; }
+  .cook-step-text { font-size: clamp(22px, 5vw, 34px); font-weight: 700; line-height: 1.35; max-width: 640px; text-wrap: balance; }
+  .cook-timer { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .cook-timer[hidden] { display: none; }
+  .cook-timer-display { font-size: 32px; font-weight: 700; color: var(--accent); }
+  .cook-done-toggle { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; color: var(--text-muted); }
+  .cook-done-toggle input { width: 18px; height: 18px; accent-color: var(--good); }
+  .cook-nav {
+    display: flex; gap: 12px; padding: 16px 20px 24px; flex-shrink: 0;
+    border-top: 1px solid var(--border);
+  }
+  .cook-nav .btn { flex: 1; padding: 14px; font-size: 14.5px; }
+  @media (max-width: 600px) {
+    .cook-body { padding: 24px 18px; gap: 18px; }
+    .cook-step-text { font-size: clamp(19px, 6vw, 26px); }
+  }
+
   /* ============ Mobile ============ */
   @media (max-width: 600px) {
     .header-inner { padding: 12px 14px 0; }
@@ -521,6 +568,11 @@
         <button class="tab" data-tab="recipes" role="tab" aria-selected="false">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19c0-4 3-6 8-6s8 2 8 6"/><path d="M8 13V7a4 4 0 0 1 8 0v6"/><path d="M8 7h8"/></svg>
           Recipes
+        </button>
+        <button class="tab" data-tab="mealplan" role="tab" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+          Meal Plan
+          <span class="tab-badge mono" id="mealPlanTabBadge">0</span>
         </button>
         <button class="tab" data-tab="shopping" role="tab" aria-selected="false">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 12.4a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 2-1.6L21 8H6"/><circle cx="9" cy="20" r="1.4" fill="currentColor" stroke="none"/><circle cx="18" cy="20" r="1.4" fill="currentColor" stroke="none"/></svg>
@@ -592,6 +644,27 @@
     <!-- ===================== RECIPES ===================== -->
     <section id="tab-recipes" class="tab-panel" role="tabpanel">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div class="section-heading good" style="margin:0;">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          Ready to make <span class="count" id="readyCount"></span>
+        </div>
+        <button type="button" id="surpriseMeBtn" class="btn btn-ghost btn-sm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M15 9l.8-.8M17.8 6.2 19 5M3 21l9-9M12.2 6.2 13 7"/></svg>
+          Surprise me
+        </button>
+      </div>
+      <div id="readyList"><div class="empty">Loading…</div></div>
+
+      <div class="section-heading warn">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        Almost there <span class="count" id="almostCount"></span>
+      </div>
+      <div id="almostList"><div class="empty">Loading…</div></div>
+    </section>
+
+    <!-- ===================== MEAL PLAN ===================== -->
+    <section id="tab-mealplan" class="tab-panel" role="tabpanel">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
         <div class="section-heading" style="margin:0;">Weekly meal plan</div>
         <div style="display:flex; gap:6px; align-items:center;">
           <select id="planDays" class="mono" style="border:1px solid var(--border); border-radius:var(--radius-sm); padding:6px 8px; font-size:12.5px; background:var(--surface-2); color:var(--text);">
@@ -606,18 +679,6 @@
         <div id="mealPlanDays"><div class="empty">No meal plan yet — generate one from your current inventory.</div></div>
         <button type="button" id="addPlanToShoppingBtn" class="btn btn-ghost btn-sm add-to-list-btn" style="display:none;">Add whole week's missing ingredients to shopping list</button>
       </div>
-
-      <div class="section-heading good">
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-        Ready to make <span class="count" id="readyCount"></span>
-      </div>
-      <div id="readyList"><div class="empty">Loading…</div></div>
-
-      <div class="section-heading warn">
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-        Almost there <span class="count" id="almostCount"></span>
-      </div>
-      <div id="almostList"><div class="empty">Loading…</div></div>
     </section>
 
     <!-- ===================== SHOPPING LIST ===================== -->
@@ -629,6 +690,10 @@
             <button type="button" class="view-toggle-btn active" data-view="flat">Flat</button>
             <button type="button" class="view-toggle-btn" data-view="grouped">By dish</button>
           </div>
+          <button id="copyListBtn" class="btn btn-ghost btn-sm">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>
+            Copy list
+          </button>
           <button id="clearCheckedBtn" class="btn btn-ghost btn-sm">Clear checked</button>
         </div>
       </div>
@@ -641,6 +706,39 @@
       </div>
     </section>
   </main>
+
+  <!-- ===================== COOK MODE ===================== -->
+  <div id="cookModeOverlay" class="cook-overlay" hidden>
+    <div class="cook-header">
+      <div class="cook-recipe-name" id="cookRecipeName"></div>
+      <button type="button" class="btn btn-icon btn-ghost" id="cookCloseBtn" aria-label="Exit cook mode">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="cook-progress"><div class="cook-progress-bar" id="cookProgressBar"></div></div>
+    <div class="cook-body">
+      <div class="cook-step-label mono" id="cookStepLabel"></div>
+      <div class="cook-step-text" id="cookStepText"></div>
+      <div class="cook-timer" id="cookTimerWrap" hidden>
+        <span class="cook-timer-display mono" id="cookTimerDisplay"></span>
+        <button type="button" class="btn btn-ghost btn-sm" id="cookTimerBtn">Start timer</button>
+      </div>
+      <label class="cook-done-toggle">
+        <input type="checkbox" id="cookStepDone" />
+        Mark this step done
+      </label>
+    </div>
+    <div class="cook-nav">
+      <button type="button" class="btn btn-ghost" id="cookBackBtn">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+        Back
+      </button>
+      <button type="button" class="btn btn-primary" id="cookNextBtn">
+        Next
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </div>
 
 <script>
 /* ============ Category taxonomy (kept in sync by hand with src/categories.ts) ============ */
@@ -689,6 +787,23 @@ const planDaysSelect = document.getElementById('planDays');
 const mealPlanDaysEl = document.getElementById('mealPlanDays');
 const addPlanToShoppingBtn = document.getElementById('addPlanToShoppingBtn');
 const shoppingViewToggle = document.getElementById('shoppingViewToggle');
+const mealPlanTabBadge = document.getElementById('mealPlanTabBadge');
+const surpriseMeBtn = document.getElementById('surpriseMeBtn');
+const copyListBtn = document.getElementById('copyListBtn');
+
+/* ============ Cook Mode element refs ============ */
+const cookModeOverlay = document.getElementById('cookModeOverlay');
+const cookRecipeName = document.getElementById('cookRecipeName');
+const cookCloseBtn = document.getElementById('cookCloseBtn');
+const cookProgressBar = document.getElementById('cookProgressBar');
+const cookStepLabel = document.getElementById('cookStepLabel');
+const cookStepText = document.getElementById('cookStepText');
+const cookTimerWrap = document.getElementById('cookTimerWrap');
+const cookTimerDisplay = document.getElementById('cookTimerDisplay');
+const cookTimerBtn = document.getElementById('cookTimerBtn');
+const cookStepDone = document.getElementById('cookStepDone');
+const cookBackBtn = document.getElementById('cookBackBtn');
+const cookNextBtn = document.getElementById('cookNextBtn');
 
 addCategory.innerHTML = CATEGORIES.map((c) => `<option value="${c.value}">${c.label}</option>`).join('');
 
@@ -904,11 +1019,25 @@ function itemRow(item) {
   // Second collapse layer: default view is name + quantity only. Tapping
   // it reveals category/expiry/edit controls — nothing more shows until
   // that deliberate click.
+  const needsReview = item.confidence === 'low';
+  const reviewBadge = needsReview
+    ? `<span class="review-badge" title="Vision wasn't confident about this detection"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Review</span>`
+    : '';
+  const reanalyzeRow = item.photo_key
+    ? `<div class="reanalyze-row">
+         <button type="button" class="btn btn-ghost btn-sm reanalyze">Re-analyze from photo</button>
+         <span class="reanalyze-note reanalyze-status"></span>
+       </div>`
+    : needsReview
+    ? '<div class="reanalyze-note">Added manually — no photo on file to re-check. Correct the fields below instead.</div>'
+    : '';
+
   row.innerHTML = `
     <button type="button" class="item-summary" aria-expanded="false">
       <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       <span class="item-name-display">${escapeAttr(item.name)}</span>
       <span class="item-qty-display mono">${item.quantity} ${escapeAttr(item.unit)}</span>
+      ${reviewBadge}
       ${isUseSoon ? '<span class="expiry-inline-badge warn">use soon</span>' : ''}
     </button>
     <div class="item-detail" inert>
@@ -942,6 +1071,7 @@ function itemRow(item) {
               </span>
             </span>
           </div>
+          ${reanalyzeRow}
         </div>
       </div>
     </div>
@@ -955,8 +1085,37 @@ function itemRow(item) {
   });
   row.querySelector('.save').addEventListener('click', () => saveItem(row));
   row.querySelector('.del').addEventListener('click', () => deleteItem(row));
+  const reanalyzeBtn = row.querySelector('.reanalyze');
+  if (reanalyzeBtn) reanalyzeBtn.addEventListener('click', () => reanalyzeItem(row, item));
 
   return row;
+}
+
+async function reanalyzeItem(row, item) {
+  const btn = row.querySelector('.reanalyze');
+  const statusSpan = row.querySelector('.reanalyze-status');
+  btn.disabled = true;
+  btn.textContent = 'Looking again…';
+  statusSpan.textContent = '';
+  try {
+    const res = await fetch(`/api/inventory/${item.id}/reanalyze`, { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+
+    if (data.found === false) {
+      statusSpan.textContent = data.message || 'Still not confident — edit the fields manually if needed.';
+      btn.disabled = false;
+      btn.textContent = 'Re-analyze from photo';
+      return;
+    }
+
+    setStatus(`Updated "${item.name}" from a second look.`);
+    await refreshAll();
+  } catch (err) {
+    statusSpan.textContent = err.message;
+    btn.disabled = false;
+    btn.textContent = 'Re-analyze from photo';
+  }
 }
 
 function categorySection(categoryDef, items) {
@@ -1083,6 +1242,7 @@ async function loadUseSoon() {
 function recipeCard(recipe, kind) {
   const div = document.createElement('div');
   div.className = 'recipe-card' + (kind === 'ready' ? ' ready' : '');
+  div.dataset.recipeId = recipe.id;
 
   const tags = kind === 'ready'
     ? recipe.matchedIngredients.map((n) => `<span class="tag have">${escapeAttr(n)}</span>`).join('')
@@ -1161,6 +1321,13 @@ async function loadRecipeDetail(cardEl, recipeId) {
       ? `<button type="button" class="btn btn-ghost btn-sm add-to-list-btn add-to-list">Add missing to shopping list</button>`
       : '';
 
+    const cookBtn = detail.steps.length > 0
+      ? `<button type="button" class="btn btn-primary btn-sm add-to-list-btn start-cooking">
+           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v18l15-9L6 3Z"/></svg>
+           Start Cooking
+         </button>`
+      : '';
+
     bodyEl.innerHTML = `
       ${photo}
       ${detail.description ? `<p class="recipe-desc">${escapeAttr(detail.description)}</p>` : ''}
@@ -1168,8 +1335,13 @@ async function loadRecipeDetail(cardEl, recipeId) {
       <div class="ingredient-list">${ingredientRows}</div>
       <div class="recipe-section-label">Steps</div>
       ${stepsHtml}
-      ${addToListBtn}
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">${cookBtn}${addToListBtn}</div>
     `;
+
+    const cookModeBtn = bodyEl.querySelector('.start-cooking');
+    if (cookModeBtn) {
+      cookModeBtn.addEventListener('click', () => openCookMode(detail.name, detail.steps));
+    }
 
     const btn = bodyEl.querySelector('.add-to-list');
     if (btn) {
@@ -1206,6 +1378,7 @@ async function loadRecipeMatches() {
 
     const ready = data.readyToMake || [];
     const almost = data.almostThere || [];
+    lastReadyRecipes = ready;
     statReady.textContent = ready.length;
     readyCountEl.textContent = ready.length;
     almostCountEl.textContent = almost.length;
@@ -1391,6 +1564,7 @@ async function loadMealPlan() {
     if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
 
     const days = data.days || [];
+    mealPlanTabBadge.textContent = days.length;
     mealPlanDaysEl.innerHTML = '';
     if (days.length === 0) {
       mealPlanDaysEl.innerHTML = '<div class="empty">No meal plan yet — generate one from your current inventory.</div>';
@@ -1438,6 +1612,169 @@ addPlanToShoppingBtn.addEventListener('click', async () => {
     addPlanToShoppingBtn.disabled = false;
     setStatus(err.message, true);
   }
+});
+
+/* ============ Surprise me ============ */
+let lastReadyRecipes = [];
+
+surpriseMeBtn.addEventListener('click', () => {
+  if (lastReadyRecipes.length === 0) {
+    setStatus('No ready-to-make recipes yet — scan more items or check Almost There.', true);
+    return;
+  }
+  const pick = lastReadyRecipes[Math.floor(Math.random() * lastReadyRecipes.length)];
+  const cardEl = readyListEl.querySelector(`[data-recipe-id="${pick.id}"]`);
+  if (!cardEl) return;
+
+  if (!cardEl.classList.contains('expanded')) {
+    cardEl.querySelector('.recipe-summary').click();
+  }
+  cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  cardEl.animate(
+    [{ boxShadow: '0 0 0 0 var(--accent-wash)' }, { boxShadow: '0 0 0 8px var(--accent-wash)' }, { boxShadow: '0 0 0 0 var(--accent-wash)' }],
+    { duration: 900, easing: 'ease-out' },
+  );
+});
+
+/* ============ Copy shopping list ============ */
+copyListBtn.addEventListener('click', async () => {
+  if (lastShoppingItems.length === 0) {
+    setStatus('Shopping list is empty — nothing to copy.', true);
+    return;
+  }
+
+  const lines = lastShoppingItems.map((item) => {
+    const sources = item.recipeNames.length > 0 ? ` (${item.recipeNames.join(', ')})` : '';
+    return `- ${item.ingredientName}${sources}`;
+  });
+  const text = `Shopping List\n${lines.join('\n')}`;
+
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      // Fallback for non-secure contexts / older browsers without the
+      // async clipboard API.
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    setStatus(`Copied ${lastShoppingItems.length} item(s) to clipboard.`);
+  } catch (err) {
+    setStatus(`Could not copy: ${err.message}`, true);
+  }
+});
+
+/* ============ Cook Mode ============ */
+let cookSteps = [];
+let cookIndex = 0;
+let cookTimerInterval = null;
+let cookTimerSecondsLeft = 0;
+
+function parseStepDurationSeconds(text) {
+  const match = text.match(/(\d+)(?:\s*-\s*\d+)?\s*(hours?|hrs?|minutes?|mins?|seconds?|secs?)\b/i);
+  if (!match) return null;
+  const value = Number(match[1]);
+  const unit = match[2].toLowerCase();
+  if (unit.startsWith('h')) return value * 3600;
+  if (unit.startsWith('m')) return value * 60;
+  return value;
+}
+
+function formatTimer(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function stopCookTimer() {
+  if (cookTimerInterval) {
+    clearInterval(cookTimerInterval);
+    cookTimerInterval = null;
+  }
+}
+
+function renderCookStep() {
+  stopCookTimer();
+  const total = cookSteps.length;
+  const stepText = cookSteps[cookIndex];
+
+  cookStepLabel.textContent = `Step ${cookIndex + 1} of ${total}`;
+  cookStepText.textContent = stepText;
+  cookProgressBar.style.width = `${((cookIndex + 1) / total) * 100}%`;
+  cookStepDone.checked = false;
+  cookBackBtn.disabled = cookIndex === 0;
+  cookNextBtn.textContent = cookIndex === total - 1 ? 'Finish' : 'Next';
+
+  const durationSeconds = parseStepDurationSeconds(stepText);
+  if (durationSeconds) {
+    cookTimerWrap.hidden = false;
+    cookTimerSecondsLeft = durationSeconds;
+    cookTimerDisplay.textContent = formatTimer(cookTimerSecondsLeft);
+    cookTimerBtn.textContent = 'Start timer';
+    cookTimerBtn.disabled = false;
+  } else {
+    cookTimerWrap.hidden = true;
+  }
+}
+
+cookTimerBtn.addEventListener('click', () => {
+  if (cookTimerInterval) return; // already running
+  cookTimerBtn.disabled = true;
+  cookTimerBtn.textContent = 'Timer running…';
+  cookTimerInterval = setInterval(() => {
+    cookTimerSecondsLeft -= 1;
+    if (cookTimerSecondsLeft <= 0) {
+      cookTimerDisplay.textContent = "Time's up!";
+      stopCookTimer();
+      cookTimerBtn.disabled = false;
+      cookTimerBtn.textContent = 'Start timer';
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      return;
+    }
+    cookTimerDisplay.textContent = formatTimer(cookTimerSecondsLeft);
+  }, 1000);
+});
+
+function openCookMode(recipeName, steps) {
+  if (!steps || steps.length === 0) return;
+  cookSteps = steps;
+  cookIndex = 0;
+  cookRecipeName.textContent = recipeName;
+  cookModeOverlay.hidden = false;
+  renderCookStep();
+}
+
+function closeCookMode() {
+  stopCookTimer();
+  cookModeOverlay.hidden = true;
+}
+
+cookCloseBtn.addEventListener('click', closeCookMode);
+cookBackBtn.addEventListener('click', () => {
+  if (cookIndex > 0) {
+    cookIndex -= 1;
+    renderCookStep();
+  }
+});
+cookNextBtn.addEventListener('click', () => {
+  if (cookIndex < cookSteps.length - 1) {
+    cookIndex += 1;
+    renderCookStep();
+  } else {
+    closeCookMode();
+  }
+});
+document.addEventListener('keydown', (e) => {
+  if (cookModeOverlay.hidden) return;
+  if (e.key === 'Escape') closeCookMode();
+  if (e.key === 'ArrowRight') cookNextBtn.click();
+  if (e.key === 'ArrowLeft') cookBackBtn.click();
 });
 
 /* ============ Orchestration ============ */

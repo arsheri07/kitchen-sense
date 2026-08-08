@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { randomUUID } from 'crypto';
 
 // Zerops object storage: S3-compatible (MinIO backend). forcePathStyle is
@@ -32,4 +32,17 @@ export async function uploadPhoto(buffer: Buffer, mimeType: string): Promise<str
   );
 
   return key;
+}
+
+// Downloads a previously uploaded photo back out of object storage — used
+// to re-run vision on a single flagged item against the original photo
+// without asking the user to retake or re-upload anything.
+export async function getPhoto(key: string): Promise<Buffer> {
+  const result = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
+  const stream = result.Body as AsyncIterable<Uint8Array>;
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
 }
