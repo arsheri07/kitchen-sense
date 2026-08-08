@@ -350,15 +350,8 @@
   .item-detail { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.24s ease; }
   .item-row.expanded .item-detail { grid-template-rows: 1fr; }
   .item-detail-inner { overflow: hidden; }
-  .item-detail-body { padding: 2px 2px 14px 23px; }
+  .item-detail-body { padding: 6px 2px 14px 23px; }
 
-  .item-top { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
-  .item-top .name {
-    flex: 1; border: 1px solid transparent; background: none; padding: 4px 6px; margin: -4px -6px;
-    font-size: 14.5px; font-weight: 600; color: var(--text); border-radius: var(--radius-sm);
-    transition: border-color 0.15s ease, background 0.15s ease;
-  }
-  .item-top .name:hover, .item-top .name:focus { border-color: var(--border); background: var(--surface-2); }
   .item-fields { display: flex; gap: 14px; flex-wrap: wrap; }
   .field { display: flex; flex-direction: column; gap: 3px; }
   .field-label { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); }
@@ -373,27 +366,53 @@
   .item-fields .expiry { min-width: 132px; font-family: var(--font-mono); }
   .expiry-inline-badge { font-family: var(--font-mono); font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 100px; flex-shrink: 0; }
   .expiry-inline-badge.warn { background: var(--warn-wash); color: var(--warn); }
-  .item-actions { display: flex; gap: 6px; }
 
   .empty { color: var(--text-faint); font-size: 13px; text-align: center; padding: 26px 0; }
 
   /* ============ Recipes ============ */
   .recipe-card {
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
-    padding: 13px 14px; margin-bottom: 8px;
+    margin-bottom: 8px; overflow: hidden;
     box-shadow: var(--shadow-card);
   }
   .recipe-card.ready { border-color: color-mix(in srgb, var(--good) 30%, var(--border)); }
-  .recipe-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .recipe-summary {
+    width: 100%; display: flex; align-items: flex-start; gap: 10px;
+    padding: 13px 14px; background: none; border: none; text-align: left;
+    transition: background 0.15s ease;
+  }
+  .recipe-summary:hover { background: var(--surface-2); }
+  .recipe-summary .chevron { width: 14px; height: 14px; color: var(--text-faint); flex-shrink: 0; margin-top: 3px; transition: transform 0.22s ease; }
+  .recipe-card.expanded .recipe-summary .chevron { transform: rotate(90deg); }
+  .recipe-summary-text { flex: 1; min-width: 0; }
   .recipe-name { font-weight: 700; font-size: 14.5px; }
-  .recipe-desc { color: var(--text-muted); font-size: 12px; margin-top: 3px; line-height: 1.4; }
+  .recipe-desc { color: var(--text-muted); font-size: 12px; margin: 0 0 12px; line-height: 1.4; }
   .missing-pill { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--warn); background: var(--warn-wash); padding: 2px 8px; border-radius: 100px; white-space: nowrap; flex-shrink: 0; }
   .ready-pill { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--good); background: var(--good-wash); padding: 2px 8px; border-radius: 100px; white-space: nowrap; flex-shrink: 0; }
-  .tags { margin-top: 9px; display: flex; flex-wrap: wrap; gap: 5px; }
+  .tags { margin-top: 7px; display: flex; flex-wrap: wrap; gap: 5px; }
   .tag { font-size: 10.5px; font-weight: 600; padding: 3px 9px; border-radius: 100px; }
   .tag.have { background: var(--good-wash); color: var(--good); }
   .tag.missing { background: var(--warn-wash); color: var(--warn); }
-  .add-to-list-btn { margin-top: 10px; }
+  .add-to-list-btn { margin-top: 4px; }
+
+  /* --- expanded recipe detail: photo, ingredients w/ amounts, steps --- */
+  .recipe-detail { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.26s ease; }
+  .recipe-card.expanded .recipe-detail { grid-template-rows: 1fr; }
+  .recipe-detail-inner { overflow: hidden; }
+  .recipe-detail-body { padding: 4px 14px 16px; border-top: 1px solid var(--border); }
+  .recipe-photo { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radius-md); margin: 12px 0; background: var(--surface-2); display: block; }
+  .recipe-section-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); margin: 14px 0 7px; }
+  .recipe-section-label:first-child { margin-top: 12px; }
+  .ingredient-list { display: flex; flex-direction: column; gap: 5px; }
+  .ingredient-row {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+    font-size: 13px; padding: 7px 10px; border-radius: var(--radius-sm); background: var(--surface-2);
+  }
+  .ingredient-row.missing { background: var(--warn-wash); }
+  .ingredient-row .ing-name { font-weight: 600; color: var(--text); }
+  .ingredient-row .ing-amount { color: var(--text-muted); font-family: var(--font-mono); font-size: 11.5px; flex-shrink: 0; }
+  .recipe-steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+  .recipe-steps li { font-size: 13.5px; line-height: 1.5; color: var(--text); padding-left: 4px; }
 
   /* ============ Shopping list ============ */
   .shop-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
@@ -433,7 +452,7 @@
     .item-detail-body { padding-left: 16px; }
     .item-fields { gap: 10px 12px; }
     .item-fields .category, .item-fields .expiry { min-width: 0; flex: 1 1 120px; }
-    .recipe-top { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .ingredient-row { flex-direction: column; align-items: flex-start; gap: 2px; }
   }
 </style>
 </head>
@@ -505,18 +524,18 @@
           <div class="scan-placeholder">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2M20 8V6a2 2 0 0 0-2-2h-2M20 16v2a2 2 0 0 1-2 2h-2"/><circle cx="12" cy="12" r="3.5"/></svg>
             <div class="scan-placeholder-text">Point it at your fridge or pantry</div>
-            <div class="scan-placeholder-sub">JPEG, PNG, WEBP or GIF · under 8MB</div>
+            <div class="scan-placeholder-sub">JPEG, PNG, WEBP or GIF · under 8MB · pick multiple for several shelves at once</div>
           </div>
         </div>
         <div class="scan-controls">
           <label class="file-btn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
-            <span id="fileLabel">Choose photo</span>
-            <input id="photoInput" type="file" accept="image/*" capture="environment" />
+            <span id="fileLabel">Choose photo(s)</span>
+            <input id="photoInput" type="file" accept="image/*" multiple />
           </label>
           <button id="scanBtn" class="btn btn-primary" disabled>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2M20 8V6a2 2 0 0 0-2-2h-2M20 16v2a2 2 0 0 1-2 2h-2"/><circle cx="12" cy="12" r="3"/></svg>
-            Scan photo
+            Scan photo(s)
           </button>
         </div>
         <div class="sample-row">
@@ -675,11 +694,12 @@ renderResetButton();
 
 /* ============ Scan ============ */
 photoInput.addEventListener('change', () => {
-  const file = photoInput.files[0];
-  scanBtn.disabled = !file;
-  fileLabel.textContent = file ? file.name : 'Choose photo';
-  if (file) {
-    preview.src = URL.createObjectURL(file);
+  const files = photoInput.files;
+  scanBtn.disabled = files.length === 0;
+  fileLabel.textContent =
+    files.length === 0 ? 'Choose photo(s)' : files.length === 1 ? files[0].name : `${files.length} photos selected`;
+  if (files.length > 0) {
+    preview.src = URL.createObjectURL(files[0]);
     scanFrame.classList.add('has-preview');
   } else {
     scanFrame.classList.remove('has-preview');
@@ -695,44 +715,71 @@ function escapeAttr(str) {
   return String(str).replace(/"/g, '&quot;');
 }
 
-async function runScan(file) {
-  scanBtn.disabled = true;
-  setStatus('Scanning photo — identifying items…');
-
+async function scanOnePhoto(file) {
   const formData = new FormData();
   formData.append('photo', file);
+  const res = await fetch('/api/inventory/scan', { method: 'POST', body: formData });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+  return data;
+}
 
-  try {
-    const res = await fetch('/api/inventory/scan', { method: 'POST', body: formData });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+// Accepts one File or several (FileList/array) — e.g. different shelves,
+// the freezer, the pantry, all scanned in one go. Each photo is sent to
+// the same single-photo endpoint sequentially (not in parallel) so the
+// existing name-match merge logic sees the DB state left by the previous
+// photo in the batch, combining overlapping items instead of duplicating
+// them across photos exactly the same way a later re-scan would.
+async function runScan(fileOrFiles) {
+  const files = Array.from(fileOrFiles.length !== undefined ? fileOrFiles : [fileOrFiles]);
+  if (files.length === 0) return;
 
-    if (data.message) {
-      const foundCount = data.items ? data.items.length : 0;
-      const prefix = foundCount > 0 ? `Found ${foundCount} item(s). ` : '';
-      setStatus(prefix + data.message, foundCount === 0);
-    } else {
-      const mergedCount = data.items.filter((it) => it.merged).length;
-      const newCount = data.items.length - mergedCount;
-      const parts = [];
-      if (newCount > 0) parts.push(`${newCount} new`);
-      if (mergedCount > 0) parts.push(`${mergedCount} updated (already tracked)`);
-      setStatus(`Found ${data.items.length} item(s) — ${parts.join(', ')}.`);
+  scanBtn.disabled = true;
+
+  let newCount = 0;
+  let mergedCount = 0;
+  let nonFoodCount = 0;
+  let emptyCount = 0;
+  const failures = [];
+
+  for (let i = 0; i < files.length; i++) {
+    setStatus(files.length > 1 ? `Scanning photo ${i + 1} of ${files.length}…` : 'Scanning photo — identifying items…');
+    try {
+      const data = await scanOnePhoto(files[i]);
+      if (data.items && data.items.length > 0) {
+        mergedCount += data.items.filter((it) => it.merged).length;
+        newCount += data.items.filter((it) => !it.merged).length;
+      } else {
+        emptyCount++;
+      }
+      if (data.skippedNonFood) nonFoodCount += data.skippedNonFood.length;
+    } catch (err) {
+      failures.push(files.length > 1 ? `photo ${i + 1}: ${err.message}` : err.message);
     }
-    photoInput.value = '';
-    fileLabel.textContent = 'Choose photo';
-    scanFrame.classList.remove('has-preview');
-    await refreshAll();
-  } catch (err) {
-    setStatus(err.message, true);
-  } finally {
-    scanBtn.disabled = !photoInput.files[0];
   }
+
+  const parts = [];
+  if (newCount > 0) parts.push(`${newCount} new`);
+  if (mergedCount > 0) parts.push(`${mergedCount} updated (already tracked)`);
+  if (nonFoodCount > 0) parts.push(`${nonFoodCount} non-food skipped`);
+  if (emptyCount > 0) parts.push(`${emptyCount} photo(s) had nothing usable`);
+
+  const prefix = files.length > 1 ? `Scanned ${files.length} photos — ` : newCount + mergedCount > 0 ? `Found ${newCount + mergedCount} item(s) — ` : '';
+  let summary = parts.length > 0 ? prefix + parts.join(', ') + '.' : 'No items detected.';
+  if (failures.length > 0) summary += ` Failed: ${failures.join('; ')}.`;
+
+  setStatus(summary, newCount + mergedCount === 0 || failures.length > 0);
+
+  photoInput.value = '';
+  fileLabel.textContent = 'Choose photo(s)';
+  scanFrame.classList.remove('has-preview');
+  await refreshAll();
+
+  scanBtn.disabled = photoInput.files.length === 0;
 }
 
 scanBtn.addEventListener('click', () => {
-  const file = photoInput.files[0];
-  if (file) runScan(file);
+  if (photoInput.files.length > 0) runScan(photoInput.files);
 });
 
 /* ============ Sample photos ============ */
@@ -813,12 +860,6 @@ function itemRow(item) {
     <div class="item-detail" inert>
       <div class="item-detail-inner">
         <div class="item-detail-body">
-          <div class="item-top">
-            <input class="name" value="${escapeAttr(item.name)}" />
-            <button class="btn btn-icon btn-danger-ghost del" title="Delete" aria-label="Delete ${escapeAttr(item.name)}">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2m2 0-.8 12.1a2 2 0 0 1-2 1.9H8.8a2 2 0 0 1-2-1.9L6 7"/></svg>
-            </button>
-          </div>
           <div class="item-fields">
             <span class="field">
               <span class="field-label">Category</span>
@@ -839,7 +880,12 @@ function itemRow(item) {
             </span>
             <span class="field" style="justify-content:flex-end;">
               <span class="field-label">&nbsp;</span>
-              <button type="button" class="btn btn-ghost btn-sm save">Save</button>
+              <span class="field-row">
+                <button type="button" class="btn btn-ghost btn-sm save">Save</button>
+                <button type="button" class="btn btn-icon btn-danger-ghost del" title="Delete" aria-label="Delete ${escapeAttr(item.name)}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2m2 0-.8 12.1a2 2 0 0 1-2 1.9H8.8a2 2 0 0 1-2-1.9L6 7"/></svg>
+                </button>
+              </span>
             </span>
           </div>
         </div>
@@ -905,7 +951,6 @@ async function saveItem(row) {
   const id = row.dataset.id;
   const expiryInput = row.querySelector('.expiry').value;
   const body = {
-    name: row.querySelector('.name').value,
     quantity: Number(row.querySelector('.qty').value),
     unit: row.querySelector('.unit').value,
     category: row.querySelector('.category').value,
@@ -996,46 +1041,107 @@ function recipeCard(recipe, kind) {
     ? '<span class="ready-pill">READY</span>'
     : `<span class="missing-pill">${recipe.missingCount} missing</span>`;
 
-  const addToListBtn = kind === 'almost'
-    ? `<button type="button" class="btn btn-ghost btn-sm add-to-list-btn add-to-list">Add missing to shopping list</button>`
-    : '';
-
+  // Collapsed by default, matching the inventory pattern: name + a quick
+  // ingredient-name glance up front, full photo/amounts/steps only after
+  // a deliberate click, fetched lazily (and cached client-side per card
+  // so re-expanding in the same session doesn't refetch).
   div.innerHTML = `
-    <div class="recipe-top">
-      <div>
-        <div class="recipe-name">${escapeAttr(recipe.name)}</div>
-        <div class="recipe-desc">${escapeAttr(recipe.description || '')}</div>
-      </div>
+    <button type="button" class="recipe-summary" aria-expanded="false">
+      <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      <span class="recipe-summary-text">
+        <span class="recipe-name">${escapeAttr(recipe.name)}</span>
+        <span class="tags">${tags}</span>
+      </span>
       ${pill}
+    </button>
+    <div class="recipe-detail" inert>
+      <div class="recipe-detail-inner">
+        <div class="recipe-detail-body"><div class="empty">Loading…</div></div>
+      </div>
     </div>
-    <div class="tags">${tags}</div>
-    ${addToListBtn}
   `;
 
-  const btn = div.querySelector('.add-to-list');
-  if (btn) {
-    btn.addEventListener('click', async () => {
-      btn.disabled = true;
-      btn.textContent = 'Adding…';
-      try {
-        const res = await fetch('/api/shopping-list/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ recipeId: recipe.id }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
-        btn.textContent = `Added ${data.added.length} item(s) ✓`;
-        await loadShoppingList();
-      } catch (err) {
-        btn.textContent = 'Failed — retry';
-        btn.disabled = false;
-        setStatus(err.message, true);
-      }
-    });
-  }
+  let detailLoaded = false;
+
+  div.querySelector('.recipe-summary').addEventListener('click', async () => {
+    const nowExpanded = !div.classList.contains('expanded');
+    div.classList.toggle('expanded', nowExpanded);
+    div.querySelector('.recipe-summary').setAttribute('aria-expanded', String(nowExpanded));
+    div.querySelector('.recipe-detail').toggleAttribute('inert', !nowExpanded);
+
+    if (nowExpanded && !detailLoaded) {
+      detailLoaded = true;
+      await loadRecipeDetail(div, recipe.id);
+    }
+  });
 
   return div;
+}
+
+async function loadRecipeDetail(cardEl, recipeId) {
+  const bodyEl = cardEl.querySelector('.recipe-detail-body');
+  try {
+    const res = await fetch(`/api/recipes/${recipeId}`);
+    const detail = await res.json();
+    if (!res.ok) throw new Error(detail.error || `Request failed (${res.status})`);
+
+    const photo = detail.photoUrl
+      ? `<img class="recipe-photo" src="${escapeAttr(detail.photoUrl)}" alt="${escapeAttr(detail.name)}" loading="lazy" />`
+      : '';
+
+    const ingredientRows = detail.ingredients
+      .map(
+        (ing) => `
+        <div class="ingredient-row ${ing.inStock ? '' : 'missing'}">
+          <span class="ing-name">${escapeAttr(ing.name)}</span>
+          <span class="ing-amount">${escapeAttr(ing.amount || '')}</span>
+        </div>`,
+      )
+      .join('');
+
+    const stepsHtml = detail.steps.length > 0
+      ? `<ol class="recipe-steps">${detail.steps.map((s) => `<li>${escapeAttr(s)}</li>`).join('')}</ol>`
+      : '<div class="empty">No instructions recorded for this recipe.</div>';
+
+    const addToListBtn = detail.missingCount > 0
+      ? `<button type="button" class="btn btn-ghost btn-sm add-to-list-btn add-to-list">Add missing to shopping list</button>`
+      : '';
+
+    bodyEl.innerHTML = `
+      ${photo}
+      ${detail.description ? `<p class="recipe-desc">${escapeAttr(detail.description)}</p>` : ''}
+      <div class="recipe-section-label">Ingredients</div>
+      <div class="ingredient-list">${ingredientRows}</div>
+      <div class="recipe-section-label">Steps</div>
+      ${stepsHtml}
+      ${addToListBtn}
+    `;
+
+    const btn = bodyEl.querySelector('.add-to-list');
+    if (btn) {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        btn.textContent = 'Adding…';
+        try {
+          const genRes = await fetch('/api/shopping-list/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ recipeId }),
+          });
+          const data = await genRes.json();
+          if (!genRes.ok) throw new Error(data.error || `Request failed (${genRes.status})`);
+          btn.textContent = `Added ${data.added.length} item(s) ✓`;
+          await loadShoppingList();
+        } catch (err) {
+          btn.textContent = 'Failed — retry';
+          btn.disabled = false;
+          setStatus(err.message, true);
+        }
+      });
+    }
+  } catch (err) {
+    bodyEl.innerHTML = `<div class="empty">Failed to load recipe detail: ${err.message}</div>`;
+  }
 }
 
 async function loadRecipeMatches() {

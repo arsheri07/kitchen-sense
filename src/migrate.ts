@@ -67,6 +67,13 @@ async function migrate(): Promise<void> {
       )
     `);
 
+    // steps: numbered cooking instructions. photo_url: Pexels image cached
+    // per recipe on first request rather than re-fetched every page load —
+    // nullable and deliberately left OUT of the seed upsert below so
+    // re-seeding never clobbers an already-cached photo.
+    await client.query(`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS steps TEXT[]`);
+    await client.query(`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS photo_url TEXT`);
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS recipe_ingredients (
         id              SERIAL PRIMARY KEY,
@@ -75,6 +82,9 @@ async function migrate(): Promise<void> {
         match_term      TEXT NOT NULL
       )
     `);
+
+    // amount: proportion shown alongside the ingredient name, e.g. "2 cups".
+    await client.query(`ALTER TABLE recipe_ingredients ADD COLUMN IF NOT EXISTS amount TEXT`);
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS shopping_list_items (
@@ -99,11 +109,11 @@ async function migrate(): Promise<void> {
     // on the next one.
     for (const recipe of SEED_RECIPES) {
       const result = await client.query<{ id: number }>(
-        `INSERT INTO recipes (name, description)
-         VALUES ($1, $2)
-         ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description
+        `INSERT INTO recipes (name, description, steps)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description, steps = EXCLUDED.steps
          RETURNING id`,
-        [recipe.name, recipe.description],
+        [recipe.name, recipe.description, recipe.steps],
       );
       const recipeId = result.rows[0].id;
 
@@ -111,9 +121,9 @@ async function migrate(): Promise<void> {
 
       for (const ingredient of recipe.ingredients) {
         await client.query(
-          `INSERT INTO recipe_ingredients (recipe_id, ingredient_name, match_term)
-           VALUES ($1, $2, $3)`,
-          [recipeId, ingredient.name, ingredient.matchTerm.toLowerCase()],
+          `INSERT INTO recipe_ingredients (recipe_id, ingredient_name, match_term, amount)
+           VALUES ($1, $2, $3, $4)`,
+          [recipeId, ingredient.name, ingredient.matchTerm.toLowerCase(), ingredient.amount],
         );
       }
     }

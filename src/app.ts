@@ -4,7 +4,7 @@ import path from 'path';
 import { pool } from './db';
 import { uploadPhoto } from './storage';
 import { identifyItems } from './vision';
-import { matchRecipes } from './recipeMatch';
+import { matchRecipes, getRecipeDetail } from './recipeMatch';
 import { estimateExpiryDate } from './expiry';
 import { listShoppingList, generateFromRecipe, addManualItem, setChecked, deleteShoppingItem, clearChecked } from './shoppingList';
 import { UnsupportedFileTypeError, ImageProcessingError } from './errors';
@@ -291,6 +291,32 @@ app.get('/api/recipes/match', async (_req, res) => {
     res.status(200).json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    res.status(503).json({ error: message });
+  }
+});
+
+// Full single-recipe detail (steps, ingredient amounts, dish photo) —
+// fetched lazily when a recipe card is expanded, not part of the bulk
+// list above. Registered after /match so that literal path isn't
+// shadowed by this :id param route.
+app.get('/api/recipes/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) {
+      res.status(400).json({ error: 'Invalid recipe id' });
+      return;
+    }
+
+    const detail = await getRecipeDetail(pool, id);
+    if (!detail) {
+      res.status(404).json({ error: 'Recipe not found' });
+      return;
+    }
+
+    res.status(200).json(detail);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Recipe detail fetch failed:', message);
     res.status(503).json({ error: message });
   }
 });
