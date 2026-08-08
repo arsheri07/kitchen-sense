@@ -719,17 +719,23 @@
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a6 6 0 1 1-12 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
             What should I cook?
           </button>
-          <button type="button" id="surpriseMeBtn" class="btn btn-ghost btn-sm">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M15 9l.8-.8M17.8 6.2 19 5M3 21l9-9M12.2 6.2 13 7"/></svg>
-            Surprise me
-          </button>
         </div>
       </div>
       <div id="readyList"><div class="empty">Loading…</div></div>
 
-      <div class="section-heading warn">
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-        Almost there <span class="count" id="almostCount"></span>
+      <div class="section-toolbar">
+        <div class="section-heading warn">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+          Almost there <span class="count" id="almostCount"></span>
+        </div>
+        <div class="section-toolbar-actions">
+          <select id="almostLimit" class="toolbar-select mono">
+            <option value="5">Show 5</option>
+            <option value="10" selected>Show 10</option>
+            <option value="15">Show 15</option>
+            <option value="20">Show 20</option>
+          </select>
+        </div>
       </div>
       <div id="almostList"><div class="empty">Loading…</div></div>
     </section>
@@ -912,9 +918,9 @@ const mealPlanDaysEl = document.getElementById('mealPlanDays');
 const addPlanToShoppingBtn = document.getElementById('addPlanToShoppingBtn');
 const shoppingViewToggle = document.getElementById('shoppingViewToggle');
 const mealPlanTabBadge = document.getElementById('mealPlanTabBadge');
-const surpriseMeBtn = document.getElementById('surpriseMeBtn');
 const whatToCookBtn = document.getElementById('whatToCookBtn');
 const copyListBtn = document.getElementById('copyListBtn');
+const almostLimitSelect = document.getElementById('almostLimit');
 
 /* ============ Settings (dietary preferences) element refs ============ */
 const settingsBtn = document.getElementById('settingsBtn');
@@ -1506,6 +1512,28 @@ async function loadRecipeDetail(cardEl, recipeId) {
   }
 }
 
+// Almost There can easily run to two dozen+ once every non-ready recipe
+// is included — capped to a user-chosen count (still ranked the same way,
+// just truncated) rather than dumping the full list. Kept as the full
+// fetched array so changing the limit re-renders instantly with no refetch.
+let lastAlmostRecipes = [];
+let almostLimit = Number(almostLimitSelect.value) || 10;
+
+function renderAlmostList() {
+  almostListEl.innerHTML = '';
+  const shown = lastAlmostRecipes.slice(0, almostLimit);
+  if (shown.length === 0) {
+    almostListEl.innerHTML = '<div class="empty">No close matches.</div>';
+    return;
+  }
+  for (const recipe of shown) almostListEl.appendChild(recipeCard(recipe, 'almost'));
+}
+
+almostLimitSelect.addEventListener('change', () => {
+  almostLimit = Number(almostLimitSelect.value) || 10;
+  renderAlmostList();
+});
+
 async function loadRecipeMatches() {
   try {
     const res = await fetch('/api/recipes/match', { cache: 'no-store' });
@@ -1514,7 +1542,6 @@ async function loadRecipeMatches() {
 
     const ready = data.readyToMake || [];
     const almost = data.almostThere || [];
-    lastReadyRecipes = ready;
     statReady.textContent = ready.length;
     readyCountEl.textContent = ready.length;
     almostCountEl.textContent = almost.length;
@@ -1526,12 +1553,8 @@ async function loadRecipeMatches() {
       for (const recipe of ready) readyListEl.appendChild(recipeCard(recipe, 'ready'));
     }
 
-    almostListEl.innerHTML = '';
-    if (almost.length === 0) {
-      almostListEl.innerHTML = '<div class="empty">No close matches.</div>';
-    } else {
-      for (const recipe of almost) almostListEl.appendChild(recipeCard(recipe, 'almost'));
-    }
+    lastAlmostRecipes = almost;
+    renderAlmostList();
   } catch (err) {
     readyListEl.innerHTML = `<div class="empty">Failed to load recipes: ${err.message}</div>`;
     almostListEl.innerHTML = '';
@@ -1816,28 +1839,6 @@ addPlanToShoppingBtn.addEventListener('click', async () => {
   }
 });
 
-/* ============ Surprise me ============ */
-let lastReadyRecipes = [];
-
-surpriseMeBtn.addEventListener('click', () => {
-  if (lastReadyRecipes.length === 0) {
-    setStatus('No ready-to-make recipes yet — scan more items or check Almost There.', true);
-    return;
-  }
-  const pick = lastReadyRecipes[Math.floor(Math.random() * lastReadyRecipes.length)];
-  const cardEl = readyListEl.querySelector(`[data-recipe-id="${pick.id}"]`);
-  if (!cardEl) return;
-
-  if (!cardEl.classList.contains('expanded')) {
-    cardEl.querySelector('.recipe-summary').click();
-  }
-  cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  cardEl.animate(
-    [{ boxShadow: '0 0 0 0 var(--accent-wash)' }, { boxShadow: '0 0 0 8px var(--accent-wash)' }, { boxShadow: '0 0 0 0 var(--accent-wash)' }],
-    { duration: 900, easing: 'ease-out' },
-  );
-});
-
 /* ============ Copy shopping list ============ */
 copyListBtn.addEventListener('click', async () => {
   if (lastShoppingItems.length === 0) {
@@ -1980,8 +1981,8 @@ document.addEventListener('keydown', (e) => {
 });
 
 /* ============ What should I cook right now? ============ */
-// Distinct from Surprise Me: a deterministic single best pick (fully
-// ready, closest to expiring, preference-respecting) rather than random.
+// A deterministic single best pick: fully ready, closest to expiring,
+// preference-respecting.
 whatToCookBtn.addEventListener('click', async () => {
   whatToCookBtn.disabled = true;
   try {
