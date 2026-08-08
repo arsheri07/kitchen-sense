@@ -54,8 +54,13 @@ export async function generateMealPlan(pool: Pool, requestedDays: unknown): Prom
 
   const candidates = allRecipes.map((r) => ({ ...r, urgencyDays: urgencyMap.get(r.id) ?? null }));
 
+  // "Urgent" means expiring within the plan's own horizon (a 7-day plan
+  // cares about the next 7 days) — not just "has any expiry data at all",
+  // which would be nearly every recipe (every item gets a default expiry
+  // estimate) and would starve the shopping-minimization phase below of
+  // anything to do.
   const urgent = candidates
-    .filter((c) => c.urgencyDays !== null)
+    .filter((c) => c.urgencyDays !== null && c.urgencyDays <= days)
     .sort((a, b) => {
       if (a.urgencyDays! !== b.urgencyDays!) return a.urgencyDays! - b.urgencyDays!;
       if (a.missingCount !== b.missingCount) return a.missingCount - b.missingCount;
