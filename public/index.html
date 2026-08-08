@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>KitchenSense</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 24px 16px 64px;
+    background: #f7f7f5;
+    color: #1a1a1a;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #16171a; color: #e9e9e7; }
+    .card { background: #212226 !important; border-color: #33343a !important; }
+    input, select { background: #1a1b1e !important; color: #e9e9e7 !important; border-color: #3a3b40 !important; }
+  }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  p.sub { color: #767676; margin-top: 0; margin-bottom: 24px; font-size: 14px; }
+  .card {
+    background: #fff;
+    border: 1px solid #e5e5e3;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .upload-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .upload-row input, .upload-row select {
+    padding: 8px;
+    border: 1px solid #d8d8d6;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+  input[type="file"] {
+    flex: 1;
+    min-width: 200px;
+  }
+  button {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button.primary { background: #d97757; color: #fff; }
+  button.primary:disabled { background: #d9b3a3; cursor: default; }
+  button.ghost { background: transparent; color: #767676; border: 1px solid #d8d8d6; }
+  button.danger { background: transparent; color: #c0392b; border: 1px solid #e5c6c2; padding: 6px 10px; font-size: 12px; }
+  #preview { max-width: 100%; border-radius: 8px; margin-top: 12px; display: none; }
+  #status { font-size: 13px; margin-top: 10px; color: #767676; min-height: 18px; }
+  #status.err { color: #c0392b; }
+  .item {
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+  }
+  .item:last-child { border-bottom: none; }
+  .item input, .item select {
+    border: 1px solid #d8d8d6;
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+  .item-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .item-top .name { flex: 1; }
+  .item-fields { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+  .field { display: flex; flex-direction: column; gap: 3px; }
+  .field-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #999;
+  }
+  .field-row { display: flex; gap: 6px; }
+  .item .qty { width: 60px; }
+  .item .unit { width: 70px; }
+  .item .category { min-width: 130px; }
+  .item .expiry { min-width: 140px; }
+  .category-group-header {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #767676;
+    margin: 18px 0 8px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+  }
+  .category-group-header:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+  .empty { color: #999; font-size: 14px; text-align: center; padding: 24px 0; }
+
+  .use-soon-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 13px;
+  }
+  .use-soon-item:last-child { border-bottom: none; }
+  .expiry-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 100px;
+    white-space: nowrap;
+  }
+  .expiry-badge.overdue { background: #fbeae7; color: #c0392b; }
+  .expiry-badge.soon { background: #fdf1de; color: #b8590f; }
+  @media (prefers-color-scheme: dark) {
+    .expiry-badge.overdue { background: #34201d; color: #e2897b; }
+    .expiry-badge.soon { background: #362a17; color: #e0a664; }
+  }
+
+  .shop-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+  }
+  .shop-item:last-child { border-bottom: none; }
+  .shop-item .label { flex: 1; }
+  .shop-item.checked .label { text-decoration: line-through; color: #999; }
+  .shop-item .source { color: #999; font-size: 11px; }
+
+  .recipe { padding: 10px 0; border-bottom: 1px solid #eee; }
+  .recipe:last-child { border-bottom: none; }
+  .recipe .name { font-weight: 600; font-size: 14px; }
+  .recipe .desc { color: #767676; font-size: 12px; margin-top: 2px; }
+  .recipe .tags { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: 100px; }
+  .tag.have { background: #e4f3e6; color: #2e7d32; }
+  .tag.missing { background: #fbeae7; color: #c0392b; }
+  @media (prefers-color-scheme: dark) {
+    .tag.have { background: #17301c; color: #7fc788; }
+    .tag.missing { background: #34201d; color: #e2897b; }
+  }
+  h2.section { font-size: 15px; margin: 0 0 8px; }
+  h2.section.ready { color: #2e7d32; }
+  h2.section.almost { color: #b8590f; }
+</style>
+</head>
+<body>
+  <h1>🍅 KitchenSense</h1>
+  <p class="sub">Photograph your fridge or pantry — items and quantities get logged automatically.</p>
+
+  <div class="card">
+    <div class="upload-row">
+      <input id="photoInput" type="file" accept="image/*" capture="environment" />
+      <button id="scanBtn" class="primary" disabled>Scan photo</button>
+    </div>
+    <img id="preview" alt="Selected photo preview" />
+    <div id="status"></div>
+  </div>
+
+  <div class="card">
+    <h2 class="section" style="color:#b8590f;">⏳ Use soon</h2>
+    <div id="useSoonList"><div class="empty">Loading…</div></div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <strong>Inventory</strong>
+      <button id="refreshBtn" class="ghost">Refresh</button>
+    </div>
+
+    <form id="addItemForm" class="upload-row" style="margin-bottom:14px;">
+      <input id="addName" placeholder="Item name (e.g. milk)" required style="flex:2; min-width:130px;" />
+      <input id="addQty" type="number" step="any" min="0" placeholder="Qty" value="1" style="width:64px;" />
+      <input id="addUnit" placeholder="Unit" value="pcs" style="width:80px;" />
+      <select id="addCategory" style="min-width:100px;"></select>
+      <input id="addExpiry" type="date" title="Expiry date (optional — defaults per category)" style="min-width:140px;" />
+      <button type="submit" class="ghost">Add manually</button>
+    </form>
+
+    <div id="list"><div class="empty">Loading…</div></div>
+  </div>
+
+  <div class="card">
+    <h2 class="section ready">✅ Ready to make</h2>
+    <div id="readyList"><div class="empty">Loading…</div></div>
+  </div>
+
+  <div class="card">
+    <h2 class="section almost">🕐 Almost there</h2>
+    <div id="almostList"><div class="empty">Loading…</div></div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <strong>🛒 Shopping list</strong>
+      <button id="clearCheckedBtn" class="ghost">Clear checked</button>
+    </div>
+    <div id="shoppingList"><div class="empty">Loading…</div></div>
+  </div>
+
+<script>
+const photoInput = document.getElementById('photoInput');
+const scanBtn = document.getElementById('scanBtn');
+const preview = document.getElementById('preview');
+const statusEl = document.getElementById('status');
+const listEl = document.getElementById('list');
+const refreshBtn = document.getElementById('refreshBtn');
+const readyListEl = document.getElementById('readyList');
+const almostListEl = document.getElementById('almostList');
+const useSoonListEl = document.getElementById('useSoonList');
+const shoppingListEl = document.getElementById('shoppingList');
+const clearCheckedBtn = document.getElementById('clearCheckedBtn');
+
+// Kept in sync by hand with src/categories.ts (this is a plain static
+// file with no build step to share a module from).
+const CATEGORIES = [
+  { value: 'produce', label: 'Produce' },
+  { value: 'dairy', label: 'Dairy' },
+  { value: 'protein', label: 'Protein' },
+  { value: 'pantry', label: 'Pantry/Canned' },
+  { value: 'condiment', label: 'Condiments' },
+  { value: 'beverage', label: 'Beverages' },
+  { value: 'frozen', label: 'Frozen' },
+  { value: 'other', label: 'Other' },
+];
+const CATEGORY_LABELS = Object.fromEntries(CATEGORIES.map((c) => [c.value, c.label]));
+
+const addItemForm = document.getElementById('addItemForm');
+const addName = document.getElementById('addName');
+const addQty = document.getElementById('addQty');
+const addUnit = document.getElementById('addUnit');
+const addCategory = document.getElementById('addCategory');
+const addExpiry = document.getElementById('addExpiry');
+
+addCategory.innerHTML = CATEGORIES.map((c) => `<option value="${c.value}">${c.label}</option>`).join('');
+
+photoInput.addEventListener('change', () => {
+  const file = photoInput.files[0];
+  scanBtn.disabled = !file;
+  if (file) {
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+});
+
+function setStatus(msg, isError) {
+  statusEl.textContent = msg;
+  statusEl.classList.toggle('err', !!isError);
+}
+
+scanBtn.addEventListener('click', async () => {
+  const file = photoInput.files[0];
+  if (!file) return;
+
+  scanBtn.disabled = true;
+  setStatus('Scanning photo — identifying items…');
+
+  const formData = new FormData();
+  formData.append('photo', file);
+
+  try {
+    const res = await fetch('/api/inventory/scan', { method: 'POST', body: formData });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+
+    if (data.message) {
+      // Either nothing usable came back (blurry / no food) or some items
+      // were found alongside non-food objects that got skipped — either
+      // way, surface the reason rather than a bare "Found N item(s)".
+      const foundCount = data.items ? data.items.length : 0;
+      const prefix = foundCount > 0 ? `Found ${foundCount} item(s). ` : '';
+      // Flag red only when nothing actually got added — a partial
+      // success (items found, some non-food skipped) isn't an error.
+      setStatus(prefix + data.message, foundCount === 0);
+    } else {
+      setStatus(`Found ${data.items.length} item(s).`);
+    }
+    photoInput.value = '';
+    preview.style.display = 'none';
+    await Promise.all([loadInventory(), loadRecipeMatches(), loadUseSoon()]);
+  } catch (err) {
+    setStatus(err.message, true);
+  } finally {
+    scanBtn.disabled = !photoInput.files[0];
+  }
+});
+
+addItemForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = addName.value.trim();
+  if (!name) return;
+
+  const body = {
+    name,
+    quantity: Number(addQty.value) || 1,
+    unit: addUnit.value.trim() || 'pcs',
+    category: addCategory.value,
+  };
+  if (addExpiry.value) body.expiryDate = addExpiry.value;
+
+  const res = await fetch('/api/inventory', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    setStatus(data.error || 'Failed to add item', true);
+    return;
+  }
+
+  setStatus(`Added "${data.item.name}".`);
+  addItemForm.reset();
+  addQty.value = 1;
+  addUnit.value = 'pcs';
+  await Promise.all([loadInventory(), loadRecipeMatches(), loadUseSoon()]);
+});
+
+refreshBtn.addEventListener('click', () => {
+  loadInventory();
+  loadRecipeMatches();
+  loadUseSoon();
+});
+
+clearCheckedBtn.addEventListener('click', async () => {
+  await fetch('/api/shopping-list/checked', { method: 'DELETE' });
+  loadShoppingList();
+});
+
+function itemRow(item) {
+  const row = document.createElement('div');
+  row.className = 'item';
+  row.dataset.id = item.id;
+
+  const expiryValue = item.expiry_date ? String(item.expiry_date).slice(0, 10) : '';
+
+  row.innerHTML = `
+    <div class="item-top">
+      <input class="name" value="${escapeAttr(item.name)}" />
+      <button class="danger del">Delete</button>
+    </div>
+    <div class="item-fields">
+      <span class="field">
+        <span class="field-label">Category</span>
+        <select class="category">
+          ${CATEGORIES.map((c) => `<option value="${c.value}" ${c.value === item.category ? 'selected' : ''}>${c.label}</option>`).join('')}
+        </select>
+      </span>
+      <span class="field">
+        <span class="field-label">Quantity</span>
+        <span class="field-row">
+          <input class="qty" type="number" step="any" value="${item.quantity}" />
+          <input class="unit" value="${escapeAttr(item.unit)}" />
+        </span>
+      </span>
+      <span class="field">
+        <span class="field-label">Expiry</span>
+        <input class="expiry" type="date" value="${expiryValue}" />
+      </span>
+    </div>
+    <button class="ghost save">Save</button>
+  `;
+
+  row.querySelector('.save').addEventListener('click', () => saveItem(row));
+  row.querySelector('.del').addEventListener('click', () => deleteItem(row));
+
+  return row;
+}
+
+function escapeAttr(str) {
+  return String(str).replace(/"/g, '&quot;');
+}
+
+async function saveItem(row) {
+  const id = row.dataset.id;
+  const expiryInput = row.querySelector('.expiry').value; // '' means cleared
+  const body = {
+    name: row.querySelector('.name').value,
+    quantity: Number(row.querySelector('.qty').value),
+    unit: row.querySelector('.unit').value,
+    category: row.querySelector('.category').value,
+    expiryDate: expiryInput || null,
+  };
+  const res = await fetch(`/api/inventory/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    setStatus(data.error || 'Failed to save item', true);
+    return;
+  }
+  setStatus('Saved.');
+  loadRecipeMatches();
+  loadUseSoon();
+}
+
+async function deleteItem(row) {
+  const id = row.dataset.id;
+  const res = await fetch(`/api/inventory/${id}`, { method: 'DELETE' });
+  if (res.ok || res.status === 204) {
+    row.remove();
+    if (!listEl.querySelector('.item')) {
+      listEl.innerHTML = '<div class="empty">No items yet — scan a photo to get started.</div>';
+    }
+    loadRecipeMatches();
+    loadUseSoon();
+  } else {
+    setStatus('Failed to delete item', true);
+  }
+}
+
+async function loadInventory() {
+  try {
+    const res = await fetch('/api/inventory');
+    const data = await res.json();
+    listEl.innerHTML = '';
+    if (!data.items || data.items.length === 0) {
+      listEl.innerHTML = '<div class="empty">No items yet — scan a photo to get started.</div>';
+      return;
+    }
+
+    // Group by category (in a fixed, grocery-aisle-like order) rather than
+    // the API's created_at ordering, so the list reads as scannable
+    // sections instead of one long undifferentiated feed.
+    const groups = new Map(CATEGORIES.map((c) => [c.value, []]));
+    for (const item of data.items) {
+      const bucket = groups.has(item.category) ? item.category : 'other';
+      groups.get(bucket).push(item);
+    }
+
+    for (const { value, label } of CATEGORIES) {
+      const groupItems = groups.get(value);
+      if (!groupItems || groupItems.length === 0) continue;
+      const header = document.createElement('div');
+      header.className = 'category-group-header';
+      header.textContent = `${label} (${groupItems.length})`;
+      listEl.appendChild(header);
+      for (const item of groupItems) {
+        listEl.appendChild(itemRow(item));
+      }
+    }
+  } catch (err) {
+    listEl.innerHTML = `<div class="empty">Failed to load inventory: ${err.message}</div>`;
+  }
+}
+
+function recipeRow(recipe, kind) {
+  const div = document.createElement('div');
+  div.className = 'recipe';
+
+  const tags = kind === 'ready'
+    ? recipe.matchedIngredients.map((n) => `<span class="tag have">${escapeAttr(n)}</span>`).join('')
+    : [
+        ...recipe.matchedIngredients.map((n) => `<span class="tag have">${escapeAttr(n)}</span>`),
+        ...recipe.missingIngredients.map((n) => `<span class="tag missing">missing: ${escapeAttr(n)}</span>`),
+      ].join('');
+
+  const subtitle = kind === 'ready'
+    ? recipe.description || ''
+    : `${recipe.missingCount} missing of ${recipe.totalIngredients} — ${recipe.description || ''}`;
+
+  const addToListBtn = kind === 'almost'
+    ? `<button class="ghost add-to-list" style="margin-top:6px; font-size:12px; padding:6px 10px;">Add missing to shopping list</button>`
+    : '';
+
+  div.innerHTML = `
+    <div class="name">${escapeAttr(recipe.name)}</div>
+    <div class="desc">${escapeAttr(subtitle)}</div>
+    <div class="tags">${tags}</div>
+    ${addToListBtn}
+  `;
+
+  const btn = div.querySelector('.add-to-list');
+  if (btn) {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      btn.textContent = 'Adding…';
+      try {
+        const res = await fetch('/api/shopping-list/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recipeId: recipe.id }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+        btn.textContent = `Added ${data.added.length} item(s) ✓`;
+        loadShoppingList();
+      } catch (err) {
+        btn.textContent = 'Failed — retry';
+        btn.disabled = false;
+        setStatus(err.message, true);
+      }
+    });
+  }
+
+  return div;
+}
+
+async function loadRecipeMatches() {
+  try {
+    const res = await fetch('/api/recipes/match');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+
+    readyListEl.innerHTML = '';
+    if (!data.readyToMake || data.readyToMake.length === 0) {
+      readyListEl.innerHTML = '<div class="empty">Nothing fully matches your inventory yet.</div>';
+    } else {
+      for (const recipe of data.readyToMake) {
+        readyListEl.appendChild(recipeRow(recipe, 'ready'));
+      }
+    }
+
+    almostListEl.innerHTML = '';
+    if (!data.almostThere || data.almostThere.length === 0) {
+      almostListEl.innerHTML = '<div class="empty">No close matches.</div>';
+    } else {
+      for (const recipe of data.almostThere) {
+        almostListEl.appendChild(recipeRow(recipe, 'almost'));
+      }
+    }
+  } catch (err) {
+    readyListEl.innerHTML = `<div class="empty">Failed to load recipes: ${err.message}</div>`;
+    almostListEl.innerHTML = '';
+  }
+}
+
+function useSoonRow(item) {
+  const div = document.createElement('div');
+  div.className = 'use-soon-item';
+
+  const days = item.days_until_expiry;
+  const isOverdue = days < 0;
+  const badgeClass = isOverdue ? 'overdue' : 'soon';
+  const badgeText = isOverdue
+    ? `${Math.abs(days)}d overdue`
+    : days === 0
+      ? 'today'
+      : `in ${days}d`;
+
+  div.innerHTML = `
+    <span>${escapeAttr(item.name)} <span style="color:#999;">(${item.quantity} ${escapeAttr(item.unit)})</span></span>
+    <span class="expiry-badge ${badgeClass}">${badgeText}</span>
+  `;
+  return div;
+}
+
+async function loadUseSoon() {
+  try {
+    const res = await fetch('/api/inventory/use-soon');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+
+    useSoonListEl.innerHTML = '';
+    if (!data.items || data.items.length === 0) {
+      useSoonListEl.innerHTML = `<div class="empty">Nothing expiring in the next ${data.windowDays ?? 3} days.</div>`;
+      return;
+    }
+    for (const item of data.items) {
+      useSoonListEl.appendChild(useSoonRow(item));
+    }
+  } catch (err) {
+    useSoonListEl.innerHTML = `<div class="empty">Failed to load: ${err.message}</div>`;
+  }
+}
+
+function shoppingRow(item) {
+  const div = document.createElement('div');
+  div.className = 'shop-item' + (item.checked ? ' checked' : '');
+  div.dataset.id = item.id;
+
+  div.innerHTML = `
+    <input type="checkbox" ${item.checked ? 'checked' : ''} />
+    <span class="label">${escapeAttr(item.ingredientName)}</span>
+    ${item.recipeName ? `<span class="source">for ${escapeAttr(item.recipeName)}</span>` : ''}
+    <button class="danger del" style="margin-left:auto;">✕</button>
+  `;
+
+  div.querySelector('input[type="checkbox"]').addEventListener('change', async (e) => {
+    await fetch(`/api/shopping-list/${item.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ checked: e.target.checked }),
+    });
+    div.classList.toggle('checked', e.target.checked);
+  });
+
+  div.querySelector('.del').addEventListener('click', async () => {
+    await fetch(`/api/shopping-list/${item.id}`, { method: 'DELETE' });
+    div.remove();
+    if (!shoppingListEl.querySelector('.shop-item')) {
+      shoppingListEl.innerHTML = '<div class="empty">Shopping list is empty.</div>';
+    }
+  });
+
+  return div;
+}
+
+async function loadShoppingList() {
+  try {
+    const res = await fetch('/api/shopping-list');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+
+    shoppingListEl.innerHTML = '';
+    if (!data.items || data.items.length === 0) {
+      shoppingListEl.innerHTML = '<div class="empty">Shopping list is empty. Add missing ingredients from a recipe above.</div>';
+      return;
+    }
+    for (const item of data.items) {
+      shoppingListEl.appendChild(shoppingRow(item));
+    }
+  } catch (err) {
+    shoppingListEl.innerHTML = `<div class="empty">Failed to load: ${err.message}</div>`;
+  }
+}
+
+loadInventory();
+loadRecipeMatches();
+loadUseSoon();
+loadShoppingList();
+</script>
+</body>
+</html>

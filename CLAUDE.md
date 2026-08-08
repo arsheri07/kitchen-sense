@@ -10,10 +10,10 @@ Express + TypeScript app with PostgreSQL, demonstrating idempotent migrations vi
 
 ## Zerops dev
 
-`setup: dev` idles on `zsc noop --silent`; the agent starts the dev server.
+`setup: dev` runs `npx ts-node src/index.ts` directly as `run.start` (supervised by a `run.healthCheck` on `/api/health`) — the app comes up on its own after any container restart/cycle, no manual dev-server start needed.
 
-- Dev command: `npm run dev` (runs `ts-node src/index.ts`)
 - In-container rebuild without deploy: `npm run build`
+- For code-only changes without a full redeploy, `zerops_dev_server` can still restart the process manually — but a redeploy alone is now sufficient to get it running again.
 
 **All platform operations (start/stop/status/logs of the dev server, deploy, env / scaling / storage / domains) go through the Zerops development workflow via `zcp` MCP tools. Don't shell out to `zcli`.**
 

@@ -19,20 +19,21 @@ zerops:
         - ./dist          # compiled JS (index.js + migrate.js)
         - ./node_modules  # production dependencies only
         - ./package.json
+        - ./public        # static frontend served by express.static
 
       # Cache node_modules between builds to avoid re-downloading
       # unchanged packages on every build trigger.
       cache:
         - node_modules
 
-    # Readiness check: verifies new containers respond at /
+    # Readiness check: verifies new containers can reach the database
     # before the project balancer routes traffic to them.
     # Prevents requests reaching containers still starting up.
     deploy:
       readinessCheck:
         httpGet:
           port: 3000
-          path: /
+          path: /api/health
 
     run:
       base: nodejs@22
@@ -59,6 +60,15 @@ zerops:
         DB_PORT: ${db_port}
         DB_USER: ${db_user}
         DB_PASS: ${db_password}
+        # Object storage (S3-compatible / MinIO) for uploaded photos —
+        # keeps the API container itself stateless.
+        S3_ENDPOINT: ${storage_apiUrl}
+        S3_BUCKET: ${storage_bucketName}
+        S3_REGION: us-east-1
+        S3_ACCESS_KEY_ID: ${storage_accessKeyId}
+        S3_SECRET_ACCESS_KEY: ${storage_secretAccessKey}
+        # ANTHROPIC_API_KEY is injected separately as an encrypted service
+        # secret (zerops_env) — not referenced here.
 
       start: node dist/index.js
 
@@ -68,14 +78,20 @@ zerops:
       healthCheck:
         httpGet:
           port: 3000
-          path: /
+          path: /api/health
 
   # Development setup — deploy full source for interactive
-  # development via SSH. The container stays idle (zsc noop)
-  # so the developer controls what runs.
+  # development via SSH. run.start launches the app directly (supervised
+  # by the platform) so it comes back up on its own after any container
+  # restart/cycle, instead of relying on a manually-started dev-server
+  # process that dies with the container.
   - setup: dev
     build:
       base: nodejs@22
+      # Must match run.os (ubuntu) below — sharp ships libc-specific
+      # native binaries (musl vs glibc); a mismatched build/run OS
+      # produces a binary the run container can't load.
+      os: ubuntu
 
       buildCommands:
         # npm install (not npm ci) — works without a lock file,
@@ -112,9 +128,18 @@ zerops:
         DB_PORT: ${db_port}
         DB_USER: ${db_user}
         DB_PASS: ${db_password}
+        S3_ENDPOINT: ${storage_apiUrl}
+        S3_BUCKET: ${storage_bucketName}
+        S3_REGION: us-east-1
+        S3_ACCESS_KEY_ID: ${storage_accessKeyId}
+        S3_SECRET_ACCESS_KEY: ${storage_secretAccessKey}
 
-      # Container stays idle — developer SSHs in and runs:
-      #   npm run dev   (ts-node hot-reload via nodemon)
-      # or
-      #   npm start     (plain ts-node)
-      start: zsc noop --silent
+      start: npx ts-node src/index.ts
+
+      # Restarts the container if the app hangs or loses its DB
+      # connection — meaningful now that run.start is the real process
+      # rather than an idle keepalive.
+      healthCheck:
+        httpGet:
+          port: 3000
+          path: /api/health
