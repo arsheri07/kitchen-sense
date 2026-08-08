@@ -708,7 +708,7 @@ function categorySection(categoryDef, items) {
       <span class="category-count mono">${items.length}</span>
       ${hasUseSoon ? `<span class="use-soon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>use soon</span>` : ''}
     </button>
-    <div class="category-content">
+    <div class="category-content"${expanded ? '' : ' inert'}>
       <div class="category-content-inner">
         <div class="category-body"></div>
       </div>
@@ -722,6 +722,10 @@ function categorySection(categoryDef, items) {
     const nowExpanded = !section.classList.contains('expanded');
     section.classList.toggle('expanded', nowExpanded);
     section.querySelector('.category-header').setAttribute('aria-expanded', String(nowExpanded));
+    // Collapsed sections shouldn't hold ~100+ inputs/selects in the
+    // accessibility/focus tree — inert removes them from both while
+    // CSS still animates the (visually zero-height) container.
+    section.querySelector('.category-content').toggleAttribute('inert', !nowExpanded);
     categoryOverride.set(categoryDef.value, nowExpanded);
   });
 
