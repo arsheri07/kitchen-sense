@@ -5,218 +5,499 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>KitchenSense</title>
 <style>
-  :root { color-scheme: light dark; }
+  /* ============ Tokens ============ */
+  :root {
+    color-scheme: dark;
+    --bg: #0B0D10;
+    --surface: #14171C;
+    --surface-2: #1C2027;
+    --border: #262B33;
+    --text: #ECE9E3;
+    --text-muted: #8B8F99;
+    --text-faint: #565B66;
+    --accent: #E7A33C;
+    --accent-hover: #F4B85B;
+    --accent-press: #C6821F;
+    --accent-wash: rgba(231, 163, 60, 0.12);
+    --good: #46A97C;
+    --good-wash: rgba(70, 169, 124, 0.14);
+    --warn: #E2574C;
+    --warn-wash: rgba(226, 87, 76, 0.16);
+    --radius-lg: 16px;
+    --radius-md: 10px;
+    --radius-sm: 7px;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -16px rgba(0, 0, 0, 0.55);
+    --shadow-hero: 0 1px 2px rgba(0, 0, 0, 0.3), 0 24px 60px -20px rgba(231, 163, 60, 0.18);
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      color-scheme: light;
+      --bg: #F6F4EF;
+      --surface: #FFFFFF;
+      --surface-2: #EFEBE3;
+      --border: #E1DCD1;
+      --text: #1B1815;
+      --text-muted: #6E6A61;
+      --text-faint: #A19C90;
+      --accent: #A8650B;
+      --accent-hover: #8F5509;
+      --accent-press: #7A480A;
+      --accent-wash: rgba(168, 101, 11, 0.09);
+      --good: #2E8C59;
+      --good-wash: rgba(46, 140, 89, 0.10);
+      --warn: #C33C2E;
+      --warn-wash: rgba(195, 60, 46, 0.10);
+      --shadow-card: 0 1px 2px rgba(30, 25, 15, 0.06), 0 12px 28px -18px rgba(30, 25, 15, 0.18);
+      --shadow-hero: 0 1px 2px rgba(30, 25, 15, 0.06), 0 24px 50px -22px rgba(168, 101, 11, 0.16);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0B0D10; --surface: #14171C; --surface-2: #1C2027; --border: #262B33;
+    --text: #ECE9E3; --text-muted: #8B8F99; --text-faint: #565B66;
+    --accent: #E7A33C; --accent-hover: #F4B85B; --accent-press: #C6821F; --accent-wash: rgba(231, 163, 60, 0.12);
+    --good: #46A97C; --good-wash: rgba(70, 169, 124, 0.14);
+    --warn: #E2574C; --warn-wash: rgba(226, 87, 76, 0.16);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -16px rgba(0, 0, 0, 0.55);
+    --shadow-hero: 0 1px 2px rgba(0, 0, 0, 0.3), 0 24px 60px -20px rgba(231, 163, 60, 0.18);
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #F6F4EF; --surface: #FFFFFF; --surface-2: #EFEBE3; --border: #E1DCD1;
+    --text: #1B1815; --text-muted: #6E6A61; --text-faint: #A19C90;
+    --accent: #A8650B; --accent-hover: #8F5509; --accent-press: #7A480A; --accent-wash: rgba(168, 101, 11, 0.09);
+    --good: #2E8C59; --good-wash: rgba(46, 140, 89, 0.10);
+    --warn: #C33C2E; --warn-wash: rgba(195, 60, 46, 0.10);
+    --shadow-card: 0 1px 2px rgba(30, 25, 15, 0.06), 0 12px 28px -18px rgba(30, 25, 15, 0.18);
+    --shadow-hero: 0 1px 2px rgba(30, 25, 15, 0.06), 0 24px 50px -22px rgba(168, 101, 11, 0.16);
+  }
+
+  /* ============ Reset / base ============ */
   * { box-sizing: border-box; }
+  html, body { height: 100%; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    max-width: 640px;
+    margin: 0;
+    font-family: var(--font-ui);
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, select { font-family: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  h1, h2, h3 { margin: 0; text-wrap: balance; }
+  .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  /* ============ App shell ============ */
+  .app-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+  }
+  .header-inner {
+    max-width: 720px;
     margin: 0 auto;
-    padding: 24px 16px 64px;
-    background: #f7f7f5;
-    color: #1a1a1a;
+    padding: 14px 18px 0;
   }
-  @media (prefers-color-scheme: dark) {
-    body { background: #16171a; color: #e9e9e7; }
-    .card { background: #212226 !important; border-color: #33343a !important; }
-    input, select { background: #1a1b1e !important; color: #e9e9e7 !important; border-color: #3a3b40 !important; }
+  .brand-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .brand { display: flex; align-items: center; gap: 9px; }
+  .brand-mark {
+    width: 30px; height: 30px; border-radius: 9px;
+    background: linear-gradient(155deg, var(--accent), var(--accent-press));
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 14px -4px var(--accent-wash);
+    flex-shrink: 0;
   }
-  h1 { font-size: 22px; margin-bottom: 4px; }
-  p.sub { color: #767676; margin-top: 0; margin-bottom: 24px; font-size: 14px; }
-  .card {
-    background: #fff;
-    border: 1px solid #e5e5e3;
-    border-radius: 12px;
-    padding: 16px;
+  .brand-mark svg { width: 17px; height: 17px; color: #100b02; }
+  .wordmark { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+  .tagline { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+
+  .summary-strip {
+    display: flex;
+    gap: 10px;
+    margin: 14px 0 12px;
+  }
+  .stat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 9px 12px;
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+  .stat-value { font-family: var(--font-mono); font-size: 19px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.1; }
+  .stat-label { font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+  .stat.good .stat-value { color: var(--good); }
+  .stat.warn .stat-value { color: var(--warn); }
+  .stat.warn.active { background: var(--warn-wash); border-color: color-mix(in srgb, var(--warn) 35%, var(--border)); }
+
+  .tabs { display: flex; gap: 4px; }
+  .tab {
+    appearance: none; border: none; background: none;
+    padding: 10px 4px 12px;
+    font-size: 14px; font-weight: 600; color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+    display: flex; align-items: center; gap: 7px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+    flex: 1;
+    justify-content: center;
+  }
+  .tab svg { width: 16px; height: 16px; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); border-color: var(--accent); }
+  .tab .tab-badge {
+    font-family: var(--font-mono);
+    font-size: 10.5px; font-weight: 700;
+    background: var(--surface-2); color: var(--text-muted);
+    border-radius: 100px; padding: 1px 6px; line-height: 1.5;
+  }
+  .tab.active .tab-badge { background: var(--accent-wash); color: var(--accent); }
+
+  main { max-width: 720px; margin: 0 auto; padding: 20px 18px 72px; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; animation: fade-in 0.2s ease; }
+  @keyframes fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  /* ============ Scan hero ============ */
+  .scan-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    box-shadow: var(--shadow-hero);
+    margin-bottom: 18px;
+  }
+  .scan-frame {
+    position: relative;
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+  .scan-frame img { width: 100%; height: 100%; object-fit: cover; display: none; }
+  .scan-frame.has-preview img { display: block; }
+  .scan-frame.has-preview .scan-placeholder { display: none; }
+  .scan-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-faint); padding: 20px; text-align: center; }
+  .scan-placeholder svg { width: 34px; height: 34px; }
+  .scan-placeholder-text { font-size: 13px; font-weight: 500; }
+  .scan-placeholder-sub { font-size: 11.5px; color: var(--text-faint); }
+  .corner { position: absolute; width: 22px; height: 22px; border: 2px solid var(--accent); opacity: 0.85; }
+  .corner.tl { top: 10px; left: 10px; border-right: none; border-bottom: none; border-top-left-radius: 6px; }
+  .corner.tr { top: 10px; right: 10px; border-left: none; border-bottom: none; border-top-right-radius: 6px; }
+  .corner.bl { bottom: 10px; left: 10px; border-right: none; border-top: none; border-bottom-left-radius: 6px; }
+  .corner.br { bottom: 10px; right: 10px; border-left: none; border-top: none; border-bottom-right-radius: 6px; }
+  .scan-sweep {
+    position: absolute; left: 6%; right: 6%; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    top: 8%;
+    opacity: 0.75;
+    filter: drop-shadow(0 0 6px var(--accent));
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .scan-sweep { animation: sweep 3.2s ease-in-out infinite; }
+  }
+  @keyframes sweep { 0%, 100% { top: 8%; } 50% { top: 88%; } }
+
+  .scan-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .file-btn {
+    flex: 1; min-width: 140px;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    padding: 11px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 13.5px; font-weight: 600; color: var(--text);
+    background: var(--surface-2);
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .file-btn:hover { border-color: var(--accent); }
+  .file-btn svg { width: 16px; height: 16px; color: var(--text-muted); }
+  .file-btn input { display: none; }
+
+  .btn {
+    appearance: none; border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 11px 16px; font-size: 13.5px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    background: var(--surface-2); color: var(--text);
+    transition: transform 0.1s ease, filter 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #14100a; }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn-primary:disabled { background: var(--surface-2); border-color: var(--border); color: var(--text-faint); cursor: default; }
+  .btn-ghost { background: transparent; }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-sm { padding: 7px 11px; font-size: 12.5px; }
+  .btn-icon { padding: 7px; border-radius: var(--radius-sm); }
+  .btn-icon svg { width: 15px; height: 15px; }
+  .btn-danger-ghost { background: transparent; border-color: var(--border); color: var(--text-muted); }
+  .btn-danger-ghost:hover { border-color: var(--warn); color: var(--warn); }
+
+  #status { font-size: 12.5px; margin-top: 10px; color: var(--text-muted); min-height: 16px; line-height: 1.5; }
+  #status.err { color: var(--warn); }
+
+  /* ============ Manual add toggle ============ */
+  .manual-add-toggle {
+    width: 100%; text-align: left; background: none; border: none;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12.5px; font-weight: 600; color: var(--text-muted);
+    padding: 4px 2px 14px;
+  }
+  .manual-add-toggle:hover { color: var(--accent); }
+  .manual-add-toggle svg { width: 13px; height: 13px; transition: transform 0.2s ease; }
+  .manual-add-toggle.open svg { transform: rotate(45deg); }
+  .manual-add-form {
+    display: none;
+    grid-template-columns: 1.6fr 0.7fr 0.7fr 1fr 1fr auto;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px;
     margin-bottom: 16px;
   }
-  .upload-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  .upload-row input, .upload-row select {
-    padding: 8px;
-    border: 1px solid #d8d8d6;
-    border-radius: 8px;
-    font-size: 14px;
+  .manual-add-form.open { display: grid; }
+  .manual-add-form input, .manual-add-form select {
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 8px 9px; font-size: 13px; background: var(--surface-2); color: var(--text);
+    min-width: 0; width: 100%;
   }
-  input[type="file"] {
-    flex: 1;
-    min-width: 200px;
+  @media (max-width: 560px) {
+    .manual-add-form { grid-template-columns: 1fr 1fr; }
+    .manual-add-form button { grid-column: 1 / -1; }
   }
-  button {
-    border: none;
-    border-radius: 8px;
-    padding: 10px 16px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  button.primary { background: #d97757; color: #fff; }
-  button.primary:disabled { background: #d9b3a3; cursor: default; }
-  button.ghost { background: transparent; color: #767676; border: 1px solid #d8d8d6; }
-  button.danger { background: transparent; color: #c0392b; border: 1px solid #e5c6c2; padding: 6px 10px; font-size: 12px; }
-  #preview { max-width: 100%; border-radius: 8px; margin-top: 12px; display: none; }
-  #status { font-size: 13px; margin-top: 10px; color: #767676; min-height: 18px; }
-  #status.err { color: #c0392b; }
-  .item {
-    padding: 12px 0;
-    border-bottom: 1px solid #eee;
-  }
-  .item:last-child { border-bottom: none; }
-  .item input, .item select {
-    border: 1px solid #d8d8d6;
-    border-radius: 6px;
-    padding: 6px 8px;
-    font-size: 13px;
-  }
-  .item-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-  .item-top .name { flex: 1; }
-  .item-fields { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
-  .field { display: flex; flex-direction: column; gap: 3px; }
-  .field-label {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: #999;
-  }
-  .field-row { display: flex; gap: 6px; }
-  .item .qty { width: 60px; }
-  .item .unit { width: 70px; }
-  .item .category { min-width: 130px; }
-  .item .expiry { min-width: 140px; }
-  .category-group-header {
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #767676;
-    margin: 18px 0 8px;
-    padding-top: 10px;
-    border-top: 1px solid #eee;
-  }
-  .category-group-header:first-child { margin-top: 0; padding-top: 0; border-top: none; }
-  .empty { color: #999; font-size: 14px; text-align: center; padding: 24px 0; }
 
-  .use-soon-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid #eee;
-    font-size: 13px;
+  /* ============ Section headers ============ */
+  .section-heading {
+    display: flex; align-items: baseline; gap: 8px;
+    font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin: 26px 0 10px;
   }
-  .use-soon-item:last-child { border-bottom: none; }
-  .expiry-badge {
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 100px;
+  .section-heading:first-child { margin-top: 0; }
+  .section-heading .count { font-family: var(--font-mono); color: var(--text-faint); font-weight: 600; }
+  .section-heading.good { color: var(--good); }
+  .section-heading.warn { color: var(--warn); }
+
+  /* ============ Category accordions ============ */
+  .category-group { border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; margin-bottom: 10px; background: var(--surface); }
+  .category-header {
+    width: 100%;
+    display: flex; align-items: center; gap: 10px;
+    padding: 13px 14px;
+    background: none; border: none; text-align: left;
+    transition: background 0.15s ease;
+  }
+  .category-header:hover { background: var(--surface-2); }
+  .category-header .chevron { width: 15px; height: 15px; color: var(--text-faint); transition: transform 0.25s ease; flex-shrink: 0; }
+  .category-group.expanded .category-header .chevron { transform: rotate(90deg); }
+  .category-name { font-weight: 700; font-size: 14px; flex-shrink: 0; }
+  .category-count { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); }
+  .use-soon-badge {
+    margin-left: auto;
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--warn-wash); color: var(--warn);
+    font-size: 11px; font-weight: 700;
+    padding: 3px 9px; border-radius: 100px;
     white-space: nowrap;
   }
-  .expiry-badge.overdue { background: #fbeae7; color: #c0392b; }
-  .expiry-badge.soon { background: #fdf1de; color: #b8590f; }
-  @media (prefers-color-scheme: dark) {
-    .expiry-badge.overdue { background: #34201d; color: #e2897b; }
-    .expiry-badge.soon { background: #362a17; color: #e0a664; }
-  }
+  .use-soon-badge svg { width: 11px; height: 11px; }
+  .category-content { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.28s ease; }
+  .category-group.expanded .category-content { grid-template-rows: 1fr; }
+  .category-content-inner { overflow: hidden; }
+  .category-body { border-top: 1px solid var(--border); padding: 4px 14px 8px; }
 
-  .shop-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 0;
-    border-bottom: 1px solid #eee;
-    font-size: 14px;
+  .item-row { padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .item-row:last-child { border-bottom: none; }
+  .item-top { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+  .item-top .name {
+    flex: 1; border: 1px solid transparent; background: none; padding: 4px 6px; margin: -4px -6px;
+    font-size: 14.5px; font-weight: 600; color: var(--text); border-radius: var(--radius-sm);
+    transition: border-color 0.15s ease, background 0.15s ease;
   }
+  .item-top .name:hover, .item-top .name:focus { border-color: var(--border); background: var(--surface-2); }
+  .item-fields { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 9px; }
+  .field { display: flex; flex-direction: column; gap: 3px; }
+  .field-label { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); }
+  .field-row { display: flex; gap: 6px; }
+  .item-fields input, .item-fields select {
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 6px 8px; font-size: 12.5px; background: var(--surface-2); color: var(--text);
+  }
+  .item-fields .qty { width: 56px; font-family: var(--font-mono); }
+  .item-fields .unit { width: 64px; }
+  .item-fields .category { min-width: 128px; }
+  .item-fields .expiry { min-width: 132px; font-family: var(--font-mono); }
+  .expiry-inline-badge { font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 100px; align-self: flex-start; margin-top: 2px; }
+  .expiry-inline-badge.warn { background: var(--warn-wash); color: var(--warn); }
+  .item-actions { display: flex; gap: 6px; }
+
+  .empty { color: var(--text-faint); font-size: 13px; text-align: center; padding: 26px 0; }
+
+  /* ============ Recipes ============ */
+  .recipe-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 13px 14px; margin-bottom: 8px;
+    box-shadow: var(--shadow-card);
+  }
+  .recipe-card.ready { border-color: color-mix(in srgb, var(--good) 30%, var(--border)); }
+  .recipe-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .recipe-name { font-weight: 700; font-size: 14.5px; }
+  .recipe-desc { color: var(--text-muted); font-size: 12px; margin-top: 3px; line-height: 1.4; }
+  .missing-pill { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--warn); background: var(--warn-wash); padding: 2px 8px; border-radius: 100px; white-space: nowrap; flex-shrink: 0; }
+  .ready-pill { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--good); background: var(--good-wash); padding: 2px 8px; border-radius: 100px; white-space: nowrap; flex-shrink: 0; }
+  .tags { margin-top: 9px; display: flex; flex-wrap: wrap; gap: 5px; }
+  .tag { font-size: 10.5px; font-weight: 600; padding: 3px 9px; border-radius: 100px; }
+  .tag.have { background: var(--good-wash); color: var(--good); }
+  .tag.missing { background: var(--warn-wash); color: var(--warn); }
+  .add-to-list-btn { margin-top: 10px; }
+
+  /* ============ Shopping list ============ */
+  .shop-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
   .shop-item:last-child { border-bottom: none; }
-  .shop-item .label { flex: 1; }
-  .shop-item.checked .label { text-decoration: line-through; color: #999; }
-  .shop-item .source { color: #999; font-size: 11px; }
-
-  .recipe { padding: 10px 0; border-bottom: 1px solid #eee; }
-  .recipe:last-child { border-bottom: none; }
-  .recipe .name { font-weight: 600; font-size: 14px; }
-  .recipe .desc { color: #767676; font-size: 12px; margin-top: 2px; }
-  .recipe .tags { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
-  .tag { font-size: 11px; padding: 2px 8px; border-radius: 100px; }
-  .tag.have { background: #e4f3e6; color: #2e7d32; }
-  .tag.missing { background: #fbeae7; color: #c0392b; }
-  @media (prefers-color-scheme: dark) {
-    .tag.have { background: #17301c; color: #7fc788; }
-    .tag.missing { background: #34201d; color: #e2897b; }
-  }
-  h2.section { font-size: 15px; margin: 0 0 8px; }
-  h2.section.ready { color: #2e7d32; }
-  h2.section.almost { color: #b8590f; }
+  .shop-item input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--accent); flex-shrink: 0; }
+  .shop-item .label { flex: 1; font-size: 14px; font-weight: 500; }
+  .shop-item.checked .label { text-decoration: line-through; color: var(--text-faint); }
+  .shop-item .source { color: var(--text-faint); font-size: 11px; }
+  .shopping-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 6px 14px; box-shadow: var(--shadow-card); }
 </style>
 </head>
 <body>
-  <h1>🍅 KitchenSense</h1>
-  <p class="sub">Photograph your fridge or pantry — items and quantities get logged automatically.</p>
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand-row">
+        <div class="brand">
+          <span class="brand-mark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/><circle cx="19" cy="17" r="2.4" fill="currentColor" stroke="none"/></svg>
+          </span>
+          <div>
+            <div class="wordmark">KitchenSense</div>
+            <div class="tagline">Scan. Track. Cook.</div>
+          </div>
+        </div>
+      </div>
 
-  <div class="card">
-    <div class="upload-row">
-      <input id="photoInput" type="file" accept="image/*" capture="environment" />
-      <button id="scanBtn" class="primary" disabled>Scan photo</button>
+      <div class="summary-strip">
+        <div class="stat">
+          <span class="stat-value mono" id="statTotal">–</span>
+          <span class="stat-label">Items</span>
+        </div>
+        <div class="stat good">
+          <span class="stat-value mono" id="statReady">–</span>
+          <span class="stat-label">Ready to make</span>
+        </div>
+        <div class="stat warn" id="statUseSoonWrap">
+          <span class="stat-value mono" id="statUseSoon">–</span>
+          <span class="stat-label">Use soon</span>
+        </div>
+      </div>
+
+      <nav class="tabs" role="tablist">
+        <button class="tab active" data-tab="inventory" role="tab" aria-selected="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+          Inventory
+        </button>
+        <button class="tab" data-tab="recipes" role="tab" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19c0-4 3-6 8-6s8 2 8 6"/><path d="M8 13V7a4 4 0 0 1 8 0v6"/><path d="M8 7h8"/></svg>
+          Recipes
+        </button>
+        <button class="tab" data-tab="shopping" role="tab" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 12.4a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 2-1.6L21 8H6"/><circle cx="9" cy="20" r="1.4" fill="currentColor" stroke="none"/><circle cx="18" cy="20" r="1.4" fill="currentColor" stroke="none"/></svg>
+          Shopping List
+          <span class="tab-badge mono" id="shoppingTabBadge">0</span>
+        </button>
+      </nav>
     </div>
-    <img id="preview" alt="Selected photo preview" />
-    <div id="status"></div>
-  </div>
+  </header>
 
-  <div class="card">
-    <h2 class="section" style="color:#b8590f;">⏳ Use soon</h2>
-    <div id="useSoonList"><div class="empty">Loading…</div></div>
-  </div>
+  <main>
+    <!-- ===================== INVENTORY ===================== -->
+    <section id="tab-inventory" class="tab-panel active" role="tabpanel">
+      <div class="scan-card">
+        <div class="scan-frame" id="scanFrame">
+          <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+          <div class="scan-sweep"></div>
+          <img id="preview" alt="Selected photo preview" />
+          <div class="scan-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2M20 8V6a2 2 0 0 0-2-2h-2M20 16v2a2 2 0 0 1-2 2h-2"/><circle cx="12" cy="12" r="3.5"/></svg>
+            <div class="scan-placeholder-text">Point it at your fridge or pantry</div>
+            <div class="scan-placeholder-sub">JPEG, PNG, WEBP or GIF · under 8MB</div>
+          </div>
+        </div>
+        <div class="scan-controls">
+          <label class="file-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+            <span id="fileLabel">Choose photo</span>
+            <input id="photoInput" type="file" accept="image/*" capture="environment" />
+          </label>
+          <button id="scanBtn" class="btn btn-primary" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2M20 8V6a2 2 0 0 0-2-2h-2M20 16v2a2 2 0 0 1-2 2h-2"/><circle cx="12" cy="12" r="3"/></svg>
+            Scan photo
+          </button>
+        </div>
+        <div id="status"></div>
+      </div>
 
-  <div class="card">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-      <strong>Inventory</strong>
-      <button id="refreshBtn" class="ghost">Refresh</button>
-    </div>
+      <button type="button" class="manual-add-toggle" id="manualAddToggle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Add an item manually
+      </button>
+      <form id="addItemForm" class="manual-add-form">
+        <input id="addName" placeholder="Item name" required />
+        <input id="addQty" type="number" step="any" min="0" placeholder="Qty" value="1" />
+        <input id="addUnit" placeholder="Unit" value="pcs" />
+        <select id="addCategory"></select>
+        <input id="addExpiry" type="date" title="Expiry date (optional)" />
+        <button type="submit" class="btn btn-ghost btn-sm">Add</button>
+      </form>
 
-    <form id="addItemForm" class="upload-row" style="margin-bottom:14px;">
-      <input id="addName" placeholder="Item name (e.g. milk)" required style="flex:2; min-width:130px;" />
-      <input id="addQty" type="number" step="any" min="0" placeholder="Qty" value="1" style="width:64px;" />
-      <input id="addUnit" placeholder="Unit" value="pcs" style="width:80px;" />
-      <select id="addCategory" style="min-width:100px;"></select>
-      <input id="addExpiry" type="date" title="Expiry date (optional — defaults per category)" style="min-width:140px;" />
-      <button type="submit" class="ghost">Add manually</button>
-    </form>
+      <div id="inventoryGroups"><div class="empty">Loading…</div></div>
+    </section>
 
-    <div id="list"><div class="empty">Loading…</div></div>
-  </div>
+    <!-- ===================== RECIPES ===================== -->
+    <section id="tab-recipes" class="tab-panel" role="tabpanel">
+      <div class="section-heading good">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        Ready to make <span class="count" id="readyCount"></span>
+      </div>
+      <div id="readyList"><div class="empty">Loading…</div></div>
 
-  <div class="card">
-    <h2 class="section ready">✅ Ready to make</h2>
-    <div id="readyList"><div class="empty">Loading…</div></div>
-  </div>
+      <div class="section-heading warn">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        Almost there <span class="count" id="almostCount"></span>
+      </div>
+      <div id="almostList"><div class="empty">Loading…</div></div>
+    </section>
 
-  <div class="card">
-    <h2 class="section almost">🕐 Almost there</h2>
-    <div id="almostList"><div class="empty">Loading…</div></div>
-  </div>
-
-  <div class="card">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-      <strong>🛒 Shopping list</strong>
-      <button id="clearCheckedBtn" class="ghost">Clear checked</button>
-    </div>
-    <div id="shoppingList"><div class="empty">Loading…</div></div>
-  </div>
+    <!-- ===================== SHOPPING LIST ===================== -->
+    <section id="tab-shopping" class="tab-panel" role="tabpanel">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div class="section-heading" style="margin:0;">Shopping list</div>
+        <button id="clearCheckedBtn" class="btn btn-ghost btn-sm">Clear checked</button>
+      </div>
+      <div class="shopping-card">
+        <div id="shoppingList"><div class="empty">Loading…</div></div>
+      </div>
+    </section>
+  </main>
 
 <script>
-const photoInput = document.getElementById('photoInput');
-const scanBtn = document.getElementById('scanBtn');
-const preview = document.getElementById('preview');
-const statusEl = document.getElementById('status');
-const listEl = document.getElementById('list');
-const refreshBtn = document.getElementById('refreshBtn');
-const readyListEl = document.getElementById('readyList');
-const almostListEl = document.getElementById('almostList');
-const useSoonListEl = document.getElementById('useSoonList');
-const shoppingListEl = document.getElementById('shoppingList');
-const clearCheckedBtn = document.getElementById('clearCheckedBtn');
-
-// Kept in sync by hand with src/categories.ts (this is a plain static
-// file with no build step to share a module from).
+/* ============ Category taxonomy (kept in sync by hand with src/categories.ts) ============ */
 const CATEGORIES = [
   { value: 'produce', label: 'Produce' },
   { value: 'dairy', label: 'Dairy' },
@@ -227,31 +508,73 @@ const CATEGORIES = [
   { value: 'frozen', label: 'Frozen' },
   { value: 'other', label: 'Other' },
 ];
-const CATEGORY_LABELS = Object.fromEntries(CATEGORIES.map((c) => [c.value, c.label]));
 
+/* ============ Element refs ============ */
+const photoInput = document.getElementById('photoInput');
+const fileLabel = document.getElementById('fileLabel');
+const scanBtn = document.getElementById('scanBtn');
+const scanFrame = document.getElementById('scanFrame');
+const preview = document.getElementById('preview');
+const statusEl = document.getElementById('status');
+const inventoryGroupsEl = document.getElementById('inventoryGroups');
+const readyListEl = document.getElementById('readyList');
+const almostListEl = document.getElementById('almostList');
+const readyCountEl = document.getElementById('readyCount');
+const almostCountEl = document.getElementById('almostCount');
+const shoppingListEl = document.getElementById('shoppingList');
+const shoppingTabBadge = document.getElementById('shoppingTabBadge');
+const clearCheckedBtn = document.getElementById('clearCheckedBtn');
+const manualAddToggle = document.getElementById('manualAddToggle');
 const addItemForm = document.getElementById('addItemForm');
 const addName = document.getElementById('addName');
 const addQty = document.getElementById('addQty');
 const addUnit = document.getElementById('addUnit');
 const addCategory = document.getElementById('addCategory');
 const addExpiry = document.getElementById('addExpiry');
+const statTotal = document.getElementById('statTotal');
+const statReady = document.getElementById('statReady');
+const statUseSoon = document.getElementById('statUseSoon');
+const statUseSoonWrap = document.getElementById('statUseSoonWrap');
 
 addCategory.innerHTML = CATEGORIES.map((c) => `<option value="${c.value}">${c.label}</option>`).join('');
 
+/* ============ Tabs ============ */
+document.querySelectorAll('.tab').forEach((tab) => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach((t) => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+    document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
+    tab.classList.add('active');
+    tab.setAttribute('aria-selected', 'true');
+    document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+  });
+});
+
+/* ============ Manual add toggle ============ */
+manualAddToggle.addEventListener('click', () => {
+  const open = addItemForm.classList.toggle('open');
+  manualAddToggle.classList.toggle('open', open);
+});
+
+/* ============ Scan ============ */
 photoInput.addEventListener('change', () => {
   const file = photoInput.files[0];
   scanBtn.disabled = !file;
+  fileLabel.textContent = file ? file.name : 'Choose photo';
   if (file) {
     preview.src = URL.createObjectURL(file);
-    preview.style.display = 'block';
+    scanFrame.classList.add('has-preview');
   } else {
-    preview.style.display = 'none';
+    scanFrame.classList.remove('has-preview');
   }
 });
 
 function setStatus(msg, isError) {
   statusEl.textContent = msg;
   statusEl.classList.toggle('err', !!isError);
+}
+
+function escapeAttr(str) {
+  return String(str).replace(/"/g, '&quot;');
 }
 
 scanBtn.addEventListener('click', async () => {
@@ -270,20 +593,16 @@ scanBtn.addEventListener('click', async () => {
     if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
 
     if (data.message) {
-      // Either nothing usable came back (blurry / no food) or some items
-      // were found alongside non-food objects that got skipped — either
-      // way, surface the reason rather than a bare "Found N item(s)".
       const foundCount = data.items ? data.items.length : 0;
       const prefix = foundCount > 0 ? `Found ${foundCount} item(s). ` : '';
-      // Flag red only when nothing actually got added — a partial
-      // success (items found, some non-food skipped) isn't an error.
       setStatus(prefix + data.message, foundCount === 0);
     } else {
       setStatus(`Found ${data.items.length} item(s).`);
     }
     photoInput.value = '';
-    preview.style.display = 'none';
-    await Promise.all([loadInventory(), loadRecipeMatches(), loadUseSoon()]);
+    fileLabel.textContent = 'Choose photo';
+    scanFrame.classList.remove('has-preview');
+    await refreshAll();
   } catch (err) {
     setStatus(err.message, true);
   } finally {
@@ -291,6 +610,7 @@ scanBtn.addEventListener('click', async () => {
   }
 });
 
+/* ============ Manual add ============ */
 addItemForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = addName.value.trim();
@@ -319,31 +639,27 @@ addItemForm.addEventListener('submit', async (e) => {
   addItemForm.reset();
   addQty.value = 1;
   addUnit.value = 'pcs';
-  await Promise.all([loadInventory(), loadRecipeMatches(), loadUseSoon()]);
+  await refreshAll();
 });
 
-refreshBtn.addEventListener('click', () => {
-  loadInventory();
-  loadRecipeMatches();
-  loadUseSoon();
-});
-
-clearCheckedBtn.addEventListener('click', async () => {
-  await fetch('/api/shopping-list/checked', { method: 'DELETE' });
-  loadShoppingList();
-});
+/* ============ Inventory (grouped, collapsible) ============ */
+const categoryOverride = new Map(); // category value -> forced expanded state (user-driven)
+let latestUseSoonIds = new Set();
 
 function itemRow(item) {
   const row = document.createElement('div');
-  row.className = 'item';
+  row.className = 'item-row';
   row.dataset.id = item.id;
 
   const expiryValue = item.expiry_date ? String(item.expiry_date).slice(0, 10) : '';
+  const isUseSoon = latestUseSoonIds.has(item.id);
 
   row.innerHTML = `
     <div class="item-top">
       <input class="name" value="${escapeAttr(item.name)}" />
-      <button class="danger del">Delete</button>
+      <button class="btn btn-icon btn-danger-ghost del" title="Delete" aria-label="Delete ${escapeAttr(item.name)}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2m2 0-.8 12.1a2 2 0 0 1-2 1.9H8.8a2 2 0 0 1-2-1.9L6 7"/></svg>
+      </button>
     </div>
     <div class="item-fields">
       <span class="field">
@@ -355,16 +671,20 @@ function itemRow(item) {
       <span class="field">
         <span class="field-label">Quantity</span>
         <span class="field-row">
-          <input class="qty" type="number" step="any" value="${item.quantity}" />
+          <input class="qty mono" type="number" step="any" value="${item.quantity}" />
           <input class="unit" value="${escapeAttr(item.unit)}" />
         </span>
       </span>
       <span class="field">
         <span class="field-label">Expiry</span>
         <input class="expiry" type="date" value="${expiryValue}" />
+        ${isUseSoon ? '<span class="expiry-inline-badge warn">use soon</span>' : ''}
+      </span>
+      <span class="field" style="justify-content:flex-end;">
+        <span class="field-label">&nbsp;</span>
+        <button type="button" class="btn btn-ghost btn-sm save">Save</button>
       </span>
     </div>
-    <button class="ghost save">Save</button>
   `;
 
   row.querySelector('.save').addEventListener('click', () => saveItem(row));
@@ -373,13 +693,44 @@ function itemRow(item) {
   return row;
 }
 
-function escapeAttr(str) {
-  return String(str).replace(/"/g, '&quot;');
+function categorySection(categoryDef, items) {
+  const hasUseSoon = items.some((it) => latestUseSoonIds.has(it.id));
+  const expanded = categoryOverride.has(categoryDef.value) ? categoryOverride.get(categoryDef.value) : hasUseSoon;
+
+  const section = document.createElement('div');
+  section.className = 'category-group' + (expanded ? ' expanded' : '');
+  section.dataset.category = categoryDef.value;
+
+  section.innerHTML = `
+    <button type="button" class="category-header" aria-expanded="${expanded}">
+      <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      <span class="category-name">${categoryDef.label}</span>
+      <span class="category-count mono">${items.length}</span>
+      ${hasUseSoon ? `<span class="use-soon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>use soon</span>` : ''}
+    </button>
+    <div class="category-content">
+      <div class="category-content-inner">
+        <div class="category-body"></div>
+      </div>
+    </div>
+  `;
+
+  const body = section.querySelector('.category-body');
+  for (const item of items) body.appendChild(itemRow(item));
+
+  section.querySelector('.category-header').addEventListener('click', () => {
+    const nowExpanded = !section.classList.contains('expanded');
+    section.classList.toggle('expanded', nowExpanded);
+    section.querySelector('.category-header').setAttribute('aria-expanded', String(nowExpanded));
+    categoryOverride.set(categoryDef.value, nowExpanded);
+  });
+
+  return section;
 }
 
 async function saveItem(row) {
   const id = row.dataset.id;
-  const expiryInput = row.querySelector('.expiry').value; // '' means cleared
+  const expiryInput = row.querySelector('.expiry').value;
   const body = {
     name: row.querySelector('.name').value,
     quantity: Number(row.querySelector('.qty').value),
@@ -398,82 +749,92 @@ async function saveItem(row) {
     return;
   }
   setStatus('Saved.');
-  loadRecipeMatches();
-  loadUseSoon();
+  await refreshAll();
 }
 
 async function deleteItem(row) {
   const id = row.dataset.id;
   const res = await fetch(`/api/inventory/${id}`, { method: 'DELETE' });
   if (res.ok || res.status === 204) {
-    row.remove();
-    if (!listEl.querySelector('.item')) {
-      listEl.innerHTML = '<div class="empty">No items yet — scan a photo to get started.</div>';
-    }
-    loadRecipeMatches();
-    loadUseSoon();
+    await refreshAll();
   } else {
     setStatus('Failed to delete item', true);
   }
 }
 
+let lastInventoryItems = [];
+
 async function loadInventory() {
   try {
     const res = await fetch('/api/inventory');
     const data = await res.json();
-    listEl.innerHTML = '';
-    if (!data.items || data.items.length === 0) {
-      listEl.innerHTML = '<div class="empty">No items yet — scan a photo to get started.</div>';
+    lastInventoryItems = data.items || [];
+    statTotal.textContent = lastInventoryItems.length;
+
+    inventoryGroupsEl.innerHTML = '';
+    if (lastInventoryItems.length === 0) {
+      inventoryGroupsEl.innerHTML = '<div class="empty">No items yet — scan a photo to get started.</div>';
       return;
     }
 
-    // Group by category (in a fixed, grocery-aisle-like order) rather than
-    // the API's created_at ordering, so the list reads as scannable
-    // sections instead of one long undifferentiated feed.
     const groups = new Map(CATEGORIES.map((c) => [c.value, []]));
-    for (const item of data.items) {
+    for (const item of lastInventoryItems) {
       const bucket = groups.has(item.category) ? item.category : 'other';
       groups.get(bucket).push(item);
     }
 
-    for (const { value, label } of CATEGORIES) {
-      const groupItems = groups.get(value);
-      if (!groupItems || groupItems.length === 0) continue;
-      const header = document.createElement('div');
-      header.className = 'category-group-header';
-      header.textContent = `${label} (${groupItems.length})`;
-      listEl.appendChild(header);
-      for (const item of groupItems) {
-        listEl.appendChild(itemRow(item));
-      }
+    for (const categoryDef of CATEGORIES) {
+      const items = groups.get(categoryDef.value);
+      if (!items || items.length === 0) continue;
+      inventoryGroupsEl.appendChild(categorySection(categoryDef, items));
     }
   } catch (err) {
-    listEl.innerHTML = `<div class="empty">Failed to load inventory: ${err.message}</div>`;
+    inventoryGroupsEl.innerHTML = `<div class="empty">Failed to load inventory: ${err.message}</div>`;
   }
 }
 
-function recipeRow(recipe, kind) {
+/* ============ Use soon (drives badges, no longer a standalone panel) ============ */
+async function loadUseSoon() {
+  try {
+    const res = await fetch('/api/inventory/use-soon');
+    const data = await res.json();
+    const items = data.items || [];
+    latestUseSoonIds = new Set(items.map((it) => it.id));
+    statUseSoon.textContent = items.length;
+    statUseSoonWrap.classList.toggle('active', items.length > 0);
+  } catch {
+    statUseSoon.textContent = '–';
+  }
+}
+
+/* ============ Recipes ============ */
+function recipeCard(recipe, kind) {
   const div = document.createElement('div');
-  div.className = 'recipe';
+  div.className = 'recipe-card' + (kind === 'ready' ? ' ready' : '');
 
   const tags = kind === 'ready'
     ? recipe.matchedIngredients.map((n) => `<span class="tag have">${escapeAttr(n)}</span>`).join('')
     : [
         ...recipe.matchedIngredients.map((n) => `<span class="tag have">${escapeAttr(n)}</span>`),
-        ...recipe.missingIngredients.map((n) => `<span class="tag missing">missing: ${escapeAttr(n)}</span>`),
+        ...recipe.missingIngredients.map((n) => `<span class="tag missing">${escapeAttr(n)}</span>`),
       ].join('');
 
-  const subtitle = kind === 'ready'
-    ? recipe.description || ''
-    : `${recipe.missingCount} missing of ${recipe.totalIngredients} — ${recipe.description || ''}`;
+  const pill = kind === 'ready'
+    ? '<span class="ready-pill">READY</span>'
+    : `<span class="missing-pill">${recipe.missingCount} missing</span>`;
 
   const addToListBtn = kind === 'almost'
-    ? `<button class="ghost add-to-list" style="margin-top:6px; font-size:12px; padding:6px 10px;">Add missing to shopping list</button>`
+    ? `<button type="button" class="btn btn-ghost btn-sm add-to-list-btn add-to-list">Add missing to shopping list</button>`
     : '';
 
   div.innerHTML = `
-    <div class="name">${escapeAttr(recipe.name)}</div>
-    <div class="desc">${escapeAttr(subtitle)}</div>
+    <div class="recipe-top">
+      <div>
+        <div class="recipe-name">${escapeAttr(recipe.name)}</div>
+        <div class="recipe-desc">${escapeAttr(recipe.description || '')}</div>
+      </div>
+      ${pill}
+    </div>
     <div class="tags">${tags}</div>
     ${addToListBtn}
   `;
@@ -492,7 +853,7 @@ function recipeRow(recipe, kind) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
         btn.textContent = `Added ${data.added.length} item(s) ✓`;
-        loadShoppingList();
+        await loadShoppingList();
       } catch (err) {
         btn.textContent = 'Failed — retry';
         btn.disabled = false;
@@ -510,78 +871,45 @@ async function loadRecipeMatches() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
 
+    const ready = data.readyToMake || [];
+    const almost = data.almostThere || [];
+    statReady.textContent = ready.length;
+    readyCountEl.textContent = ready.length;
+    almostCountEl.textContent = almost.length;
+
     readyListEl.innerHTML = '';
-    if (!data.readyToMake || data.readyToMake.length === 0) {
+    if (ready.length === 0) {
       readyListEl.innerHTML = '<div class="empty">Nothing fully matches your inventory yet.</div>';
     } else {
-      for (const recipe of data.readyToMake) {
-        readyListEl.appendChild(recipeRow(recipe, 'ready'));
-      }
+      for (const recipe of ready) readyListEl.appendChild(recipeCard(recipe, 'ready'));
     }
 
     almostListEl.innerHTML = '';
-    if (!data.almostThere || data.almostThere.length === 0) {
+    if (almost.length === 0) {
       almostListEl.innerHTML = '<div class="empty">No close matches.</div>';
     } else {
-      for (const recipe of data.almostThere) {
-        almostListEl.appendChild(recipeRow(recipe, 'almost'));
-      }
+      for (const recipe of almost) almostListEl.appendChild(recipeCard(recipe, 'almost'));
     }
   } catch (err) {
     readyListEl.innerHTML = `<div class="empty">Failed to load recipes: ${err.message}</div>`;
     almostListEl.innerHTML = '';
+    statReady.textContent = '–';
   }
 }
 
-function useSoonRow(item) {
-  const div = document.createElement('div');
-  div.className = 'use-soon-item';
-
-  const days = item.days_until_expiry;
-  const isOverdue = days < 0;
-  const badgeClass = isOverdue ? 'overdue' : 'soon';
-  const badgeText = isOverdue
-    ? `${Math.abs(days)}d overdue`
-    : days === 0
-      ? 'today'
-      : `in ${days}d`;
-
-  div.innerHTML = `
-    <span>${escapeAttr(item.name)} <span style="color:#999;">(${item.quantity} ${escapeAttr(item.unit)})</span></span>
-    <span class="expiry-badge ${badgeClass}">${badgeText}</span>
-  `;
-  return div;
-}
-
-async function loadUseSoon() {
-  try {
-    const res = await fetch('/api/inventory/use-soon');
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
-
-    useSoonListEl.innerHTML = '';
-    if (!data.items || data.items.length === 0) {
-      useSoonListEl.innerHTML = `<div class="empty">Nothing expiring in the next ${data.windowDays ?? 3} days.</div>`;
-      return;
-    }
-    for (const item of data.items) {
-      useSoonListEl.appendChild(useSoonRow(item));
-    }
-  } catch (err) {
-    useSoonListEl.innerHTML = `<div class="empty">Failed to load: ${err.message}</div>`;
-  }
-}
-
+/* ============ Shopping list ============ */
 function shoppingRow(item) {
   const div = document.createElement('div');
   div.className = 'shop-item' + (item.checked ? ' checked' : '');
   div.dataset.id = item.id;
 
   div.innerHTML = `
-    <input type="checkbox" ${item.checked ? 'checked' : ''} />
+    <input type="checkbox" ${item.checked ? 'checked' : ''} aria-label="Mark ${escapeAttr(item.ingredientName)} as picked up" />
     <span class="label">${escapeAttr(item.ingredientName)}</span>
     ${item.recipeName ? `<span class="source">for ${escapeAttr(item.recipeName)}</span>` : ''}
-    <button class="danger del" style="margin-left:auto;">✕</button>
+    <button type="button" class="btn btn-icon btn-danger-ghost del" aria-label="Remove ${escapeAttr(item.ingredientName)}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
   `;
 
   div.querySelector('input[type="checkbox"]').addEventListener('change', async (e) => {
@@ -595,10 +923,7 @@ function shoppingRow(item) {
 
   div.querySelector('.del').addEventListener('click', async () => {
     await fetch(`/api/shopping-list/${item.id}`, { method: 'DELETE' });
-    div.remove();
-    if (!shoppingListEl.querySelector('.shop-item')) {
-      shoppingListEl.innerHTML = '<div class="empty">Shopping list is empty.</div>';
-    }
+    await loadShoppingList();
   });
 
   return div;
@@ -610,23 +935,33 @@ async function loadShoppingList() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
 
+    const items = data.items || [];
+    shoppingTabBadge.textContent = items.length;
+
     shoppingListEl.innerHTML = '';
-    if (!data.items || data.items.length === 0) {
-      shoppingListEl.innerHTML = '<div class="empty">Shopping list is empty. Add missing ingredients from a recipe above.</div>';
+    if (items.length === 0) {
+      shoppingListEl.innerHTML = '<div class="empty">Shopping list is empty. Add missing ingredients from a recipe.</div>';
       return;
     }
-    for (const item of data.items) {
-      shoppingListEl.appendChild(shoppingRow(item));
-    }
+    for (const item of items) shoppingListEl.appendChild(shoppingRow(item));
   } catch (err) {
     shoppingListEl.innerHTML = `<div class="empty">Failed to load: ${err.message}</div>`;
   }
 }
 
-loadInventory();
-loadRecipeMatches();
-loadUseSoon();
-loadShoppingList();
+clearCheckedBtn.addEventListener('click', async () => {
+  await fetch('/api/shopping-list/checked', { method: 'DELETE' });
+  await loadShoppingList();
+});
+
+/* ============ Orchestration ============ */
+async function refreshAll() {
+  // use-soon first so inventory rendering knows which items/categories to badge
+  await loadUseSoon();
+  await Promise.all([loadInventory(), loadRecipeMatches(), loadShoppingList()]);
+}
+
+refreshAll();
 </script>
 </body>
 </html>
