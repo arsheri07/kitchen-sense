@@ -385,6 +385,7 @@ app.put('/api/preferences', async (req, res) => {
       avoidTerms: body.avoidTerms,
       highProtein: body.highProtein,
       favoriteProteins: body.favoriteProteins,
+      quickSimple: body.quickSimple,
     });
     res.status(200).json(prefs);
   } catch (err) {

@@ -175,6 +175,7 @@ async function migrate(): Promise<void> {
     // recipe sorts higher, a non-matching one stays visible just lower.
     await client.query(`ALTER TABLE preferences ADD COLUMN IF NOT EXISTS high_protein BOOLEAN NOT NULL DEFAULT false`);
     await client.query(`ALTER TABLE preferences ADD COLUMN IF NOT EXISTS favorite_proteins TEXT[] NOT NULL DEFAULT '{}'`);
+    await client.query(`ALTER TABLE preferences ADD COLUMN IF NOT EXISTS quick_simple BOOLEAN NOT NULL DEFAULT false`);
 
     // Seed (or re-sync) the recipe catalog. Upserting on the unique name
     // and re-inserting ingredients fresh each run keeps this idempotent —

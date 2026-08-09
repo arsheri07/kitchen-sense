@@ -26,9 +26,14 @@ export interface SeedRecipe {
 // instead of silently defaulting to "fits everything" if a tag is
 // forgotten. Matching is exact-term (not substring) specifically so e.g.
 // "coconut milk" doesn't collide with the dairy term "milk".
-const NON_VEGETARIAN_TERMS = new Set([
-  'chicken', 'beef', 'steak', 'shrimp', 'salmon', 'fish', 'bacon', 'pork', 'turkey', 'ham', 'sausage',
+//
+// Split into red-meat/poultry vs. fish/shellfish specifically so
+// pescatarian (allows fish, not other meat) can be derived as its own
+// tag rather than being an alias for vegetarian.
+const RED_MEAT_POULTRY_TERMS = new Set([
+  'chicken', 'beef', 'steak', 'bacon', 'pork', 'turkey', 'ham', 'sausage', 'lamb',
 ]);
+const FISH_SHELLFISH_TERMS = new Set(['shrimp', 'salmon', 'fish']);
 const NON_VEGAN_EXTRA_TERMS = new Set([
   'egg', 'milk', 'cheese', 'butter', 'yogurt', 'parmesan', 'honey', 'ice cream', 'caesar', 'cream',
 ]);
@@ -41,23 +46,40 @@ const DAIRY_TERMS = new Set([
 const NUT_TERMS = new Set([
   'peanut', 'peanut butter', 'almond', 'cashew', 'walnut', 'pecan', 'hazelnut', 'pistachio',
 ]);
+// Coarse "meaningful carbohydrate source" list — grains, starches, sugars.
+// Same heuristic spirit as the rest of this file: no real nutrition data,
+// just ingredient-name signal, documented as an approximation.
+const HIGH_CARB_TERMS = new Set([
+  'bread', 'pasta', 'flour', 'taco shell', 'crouton', 'rice', 'oat', 'granola', 'cracker',
+  'sugar', 'brown sugar', 'chocolate chip', 'cornstarch', 'honey', 'ice cream', 'soda',
+]);
+// Keto is low-carb plus excluding legumes and higher-sugar fruit — both
+// carry meaningfully more carbs than typical keto guidance allows, even
+// though they don't trip the coarser low-carb list above.
+const KETO_EXTRA_EXCLUDE_TERMS = new Set(['chickpea', 'lentil', 'can', 'orange', 'banana', 'grape']);
 
 export function deriveDietaryTags(ingredients: SeedIngredient[]): string[] {
   const terms = ingredients.map((i) => i.matchTerm.toLowerCase());
   const hasAny = (set: Set<string>) => terms.some((t) => set.has(t));
 
-  const vegetarian = !hasAny(NON_VEGETARIAN_TERMS);
+  const pescatarian = !hasAny(RED_MEAT_POULTRY_TERMS);
+  const vegetarian = pescatarian && !hasAny(FISH_SHELLFISH_TERMS);
   const vegan = vegetarian && !hasAny(NON_VEGAN_EXTRA_TERMS);
   const glutenFree = !hasAny(GLUTEN_TERMS);
   const dairyFree = !hasAny(DAIRY_TERMS);
   const nutFree = !hasAny(NUT_TERMS);
+  const lowCarb = !hasAny(HIGH_CARB_TERMS);
+  const keto = lowCarb && !hasAny(KETO_EXTRA_EXCLUDE_TERMS);
 
   const tags: string[] = [];
   if (vegetarian) tags.push('vegetarian');
   if (vegan) tags.push('vegan');
+  if (pescatarian) tags.push('pescatarian');
   if (glutenFree) tags.push('gluten-free');
   if (dairyFree) tags.push('dairy-free');
   if (nutFree) tags.push('nut-free');
+  if (lowCarb) tags.push('low-carb');
+  if (keto) tags.push('keto');
   return tags;
 }
 
@@ -80,6 +102,9 @@ const PROTEIN_TYPE_MAP: Record<string, string> = {
   chickpea: 'legumes',
   lentil: 'legumes',
   can: 'legumes', // "Canned beans" — the only recipes using the bare 'can' match term
+  pork: 'pork',
+  turkey: 'turkey',
+  lamb: 'lamb',
 };
 
 export function deriveProteinTypes(ingredients: SeedIngredient[]): string[] {
@@ -680,6 +705,66 @@ export const SEED_RECIPES: SeedRecipe[] = [
       'Heat a heavy pan over high heat until very hot, then sear the steaks for 3-4 minutes per side for medium-rare.',
       'In the last minute, add the butter and garlic to the pan and spoon the melted butter over the steaks.',
       'Rest the steaks for 5 minutes before slicing and serving.',
+    ],
+  },
+
+  // --- pork / turkey / lamb: give the newer favorite-protein options
+  // (and pescatarian, by contrast) real recipes to actually rank/filter ---
+  {
+    name: 'Turkey Chili',
+    description: 'A hearty chili of ground turkey, beans and tomato, warmed with chili powder.',
+    ingredients: [
+      { name: 'Ground turkey', matchTerm: 'turkey', amount: '500g' },
+      { name: 'Canned beans', matchTerm: 'can', amount: '1 can (15 oz), drained' },
+      { name: 'Tomato', matchTerm: 'tomato', amount: '2, diced (or 1 can crushed)' },
+      { name: 'Onion', matchTerm: 'onion', amount: '1, diced' },
+      { name: 'Garlic', matchTerm: 'garlic', amount: '2 cloves, minced' },
+      { name: 'Chili powder', matchTerm: 'chili powder', amount: '2 tbsp' },
+    ],
+    steps: [
+      'Heat oil in a large pot and cook the onion until softened, about 4 minutes.',
+      'Add the garlic and ground turkey, breaking it up as it browns, about 6-8 minutes.',
+      'Stir in the chili powder and cook for 1 minute until fragrant.',
+      'Add the tomato and beans, then bring to a simmer.',
+      'Simmer uncovered for 20-25 minutes, stirring occasionally, until thickened.',
+      'Season with salt and pepper to taste, then serve hot.',
+    ],
+  },
+  {
+    name: 'Herb-Crusted Pork Chops',
+    description: 'Pan-seared pork chops finished with garlic, rosemary and butter.',
+    ingredients: [
+      { name: 'Pork chops', matchTerm: 'pork', amount: '2 chops, bone-in' },
+      { name: 'Garlic', matchTerm: 'garlic', amount: '2 cloves, smashed' },
+      { name: 'Rosemary', matchTerm: 'rosemary', amount: '2 sprigs' },
+      { name: 'Butter', matchTerm: 'butter', amount: '2 tbsp' },
+      { name: 'Olive oil', matchTerm: 'olive oil', amount: '1 tbsp' },
+    ],
+    steps: [
+      'Pat the pork chops dry and season generously with salt and pepper.',
+      'Heat the olive oil in a heavy pan over medium-high heat and sear the chops for 3-4 minutes per side until golden.',
+      'Reduce the heat to medium, add the butter, garlic, and rosemary to the pan.',
+      'Tilt the pan and continuously spoon the melted herb butter over the chops for 1-2 minutes.',
+      'Rest for 5 minutes before serving, spooning any remaining pan butter on top.',
+    ],
+  },
+  {
+    name: 'Lamb Kofta with Yogurt Sauce',
+    description: 'Spiced ground lamb skewers with a cool garlic-yogurt sauce.',
+    ingredients: [
+      { name: 'Ground lamb', matchTerm: 'lamb', amount: '400g' },
+      { name: 'Onion', matchTerm: 'onion', amount: '1/2, finely grated' },
+      { name: 'Garlic', matchTerm: 'garlic', amount: '2 cloves, minced' },
+      { name: 'Cumin', matchTerm: 'cumin', amount: '1 tsp' },
+      { name: 'Greek yogurt', matchTerm: 'yogurt', amount: '1/2 cup, for the sauce' },
+      { name: 'Lemon', matchTerm: 'lemon', amount: '1/2, juiced' },
+    ],
+    steps: [
+      'Combine the lamb, grated onion, half the garlic, and cumin in a bowl; mix and season with salt and pepper.',
+      'Shape the mixture into small oval patties or press onto skewers.',
+      'Heat a pan or grill over medium-high heat and cook the koftas for 3-4 minutes per side until browned and cooked through.',
+      'While they cook, stir the remaining garlic and lemon juice into the yogurt to make the sauce.',
+      'Serve the koftas hot with the yogurt sauce spooned over or alongside.',
     ],
   },
 ];

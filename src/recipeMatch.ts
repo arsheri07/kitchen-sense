@@ -61,11 +61,21 @@ function violatesPreferences(recipe: RecipeMatch, prefs: Preferences): boolean {
   return false;
 }
 
+// A recipe with 3 or fewer total ingredients reads as "quick & simple"
+// (the same threshold the seed catalog's own comments use for its
+// "simple" tier); 4-5 gets a smaller nod; 6+ gets none. Real signal
+// already computed from the recipe/ingredient join, not fabricated.
+function quickSimpleBonus(totalIngredients: number): number {
+  if (totalIngredients <= 3) return 2;
+  if (totalIngredients <= 5) return 1;
+  return 0;
+}
+
 // Soft ranking signal — higher is a better match for stated taste
 // preferences. Never used to exclude a recipe (that's violatesPreferences
 // above); a recipe scoring 0 here still shows up, just lower in the list.
 export function computePreferenceScore(
-  recipe: { dietaryTags: string[]; proteinTypes: string[] },
+  recipe: { dietaryTags: string[]; proteinTypes: string[]; totalIngredients: number },
   prefs: Preferences,
 ): number {
   let score = 0;
@@ -73,6 +83,7 @@ export function computePreferenceScore(
   if (prefs.favoriteProteins.length > 0) {
     score += recipe.proteinTypes.filter((type) => prefs.favoriteProteins.includes(type)).length;
   }
+  if (prefs.quickSimple) score += quickSimpleBonus(recipe.totalIngredients);
   return score;
 }
 

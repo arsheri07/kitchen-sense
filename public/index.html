@@ -536,17 +536,23 @@
   }
   .modal-overlay[hidden] { display: none; }
   .modal-card {
-    width: 100%; max-width: 420px; max-height: calc(100vh - 40px); overflow-y: auto;
+    width: 100%; max-width: 460px; max-height: calc(100vh - 40px); overflow-y: auto;
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-hero); padding: 20px;
+    box-shadow: var(--shadow-hero); padding: 22px;
   }
   .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
   .modal-title { font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
-  .modal-sub { font-size: 12.5px; color: var(--text-muted); margin: 4px 0 16px; line-height: 1.5; }
-  .pref-group-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); margin: 16px 0 8px; }
-  .pref-group-label:first-of-type { margin-top: 0; }
-  .pref-restrictions { display: flex; flex-direction: column; gap: 9px; }
-  .pref-checkbox { display: flex; align-items: center; gap: 9px; font-size: 13.5px; font-weight: 500; }
+  .modal-sub { font-size: 12.5px; color: var(--text-muted); margin: 4px 0 0; line-height: 1.5; }
+  /* Each preference group gets its own padded, divided block instead of
+     running together as one dense list — Restrictions / Avoid Ingredients /
+     Taste & Nutrition / Favorite Proteins read as distinct decisions. */
+  .pref-section { padding: 18px 0; border-top: 1px solid var(--border); }
+  .pref-section:first-of-type { border-top: none; padding-top: 20px; }
+  .pref-section:last-of-type { padding-bottom: 0; }
+  .pref-group-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); margin: 0 0 6px; }
+  .pref-hint-lead { margin: 0 0 12px; }
+  .pref-restrictions { display: flex; flex-direction: column; gap: 13px; }
+  .pref-checkbox { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 500; line-height: 1.4; }
   .pref-checkbox input { width: 17px; height: 17px; accent-color: var(--accent); flex-shrink: 0; }
   .pref-avoid-input {
     width: 100%; min-height: 64px; resize: vertical;
@@ -554,10 +560,11 @@
     padding: 9px 11px; font-size: 13px; background: var(--surface-2); color: var(--text);
   }
   .pref-avoid-input:focus-visible { border-color: var(--accent); }
-  .pref-hint { font-size: 11px; color: var(--text-faint); margin-top: 5px; }
+  .pref-hint { font-size: 11.5px; color: var(--text-faint); margin-top: 7px; line-height: 1.5; }
   .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
   @media (max-width: 600px) {
     .modal-card { padding: 16px; }
+    .pref-section:first-of-type { padding-top: 16px; }
   }
 
   /* ============ Mobile ============ */
@@ -734,6 +741,7 @@
             <option value="10" selected>Show 10</option>
             <option value="15">Show 15</option>
             <option value="20">Show 20</option>
+            <option value="all">Show all</option>
           </select>
         </div>
       </div>
@@ -827,21 +835,38 @@
       </div>
       <p class="modal-sub">Applied everywhere recipes are surfaced — matching, the weekly meal plan, and suggestions.</p>
 
-      <div class="pref-group-label">Restrictions</div>
-      <div class="pref-restrictions" id="prefRestrictions"></div>
+      <div class="pref-section">
+        <div class="pref-group-label">Restrictions</div>
+        <div class="pref-hint pref-hint-lead">Hard filter — a recipe violating any checked restriction is excluded entirely.</div>
+        <div class="pref-restrictions" id="prefRestrictions"></div>
+      </div>
 
-      <div class="pref-group-label">Avoid these ingredients</div>
-      <textarea id="prefAvoidInput" class="pref-avoid-input" placeholder="e.g. cilantro, shellfish, mushrooms"></textarea>
-      <div class="pref-hint">Comma or newline separated. Any recipe using one of these is excluded.</div>
+      <div class="pref-section">
+        <div class="pref-group-label">Avoid these ingredients</div>
+        <textarea id="prefAvoidInput" class="pref-avoid-input" placeholder="e.g. cilantro, shellfish, mushrooms"></textarea>
+        <div class="pref-hint">Comma or newline separated. Any recipe using one of these is excluded.</div>
+      </div>
 
-      <div class="pref-group-label">Taste &amp; nutrition</div>
-      <label class="pref-checkbox">
-        <input type="checkbox" id="prefHighProtein" />
-        Prefer high-protein recipes
-      </label>
-      <div class="pref-hint" style="margin-bottom:10px;">Ranking only — these never hide a recipe, they just move better matches higher. Everything else stays visible.</div>
-      <div class="pref-group-label" style="margin-top:2px;">Favorite proteins</div>
-      <div class="pref-restrictions" id="prefProteins"></div>
+      <div class="pref-section">
+        <div class="pref-group-label">Taste &amp; nutrition</div>
+        <div class="pref-hint pref-hint-lead">Ranking only — these never hide a recipe, they just move better matches higher. Everything else stays visible.</div>
+        <div class="pref-restrictions">
+          <label class="pref-checkbox">
+            <input type="checkbox" id="prefHighProtein" />
+            Prefer high-protein recipes
+          </label>
+          <label class="pref-checkbox">
+            <input type="checkbox" id="prefQuickSimple" />
+            Prefer quick &amp; simple recipes (fewer ingredients)
+          </label>
+        </div>
+      </div>
+
+      <div class="pref-section">
+        <div class="pref-group-label">Favorite proteins</div>
+        <div class="pref-hint pref-hint-lead">Ranking only, same as above — recipes featuring these rank higher.</div>
+        <div class="pref-restrictions" id="prefProteins"></div>
+      </div>
 
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost btn-sm" id="settingsCancelBtn">Cancel</button>
@@ -867,9 +892,12 @@ const CATEGORIES = [
 const DIETARY_RESTRICTIONS = [
   { value: 'vegetarian', label: 'Vegetarian' },
   { value: 'vegan', label: 'Vegan' },
+  { value: 'pescatarian', label: 'Pescatarian' },
   { value: 'gluten-free', label: 'Gluten-free' },
   { value: 'dairy-free', label: 'Dairy-free' },
   { value: 'nut-free', label: 'Nut-free' },
+  { value: 'low-carb', label: 'Low-carb' },
+  { value: 'keto', label: 'Keto' },
 ];
 
 /* ============ Favorite protein types (kept in sync by hand with src/preferences.ts) ============ */
@@ -881,6 +909,9 @@ const PROTEIN_TYPES = [
   { value: 'egg', label: 'Egg' },
   { value: 'tofu', label: 'Tofu' },
   { value: 'legumes', label: 'Legumes (beans, lentils, chickpeas)' },
+  { value: 'pork', label: 'Pork' },
+  { value: 'turkey', label: 'Turkey' },
+  { value: 'lamb', label: 'Lamb' },
 ];
 
 /* ============ Element refs ============ */
@@ -931,6 +962,7 @@ const settingsSaveBtn = document.getElementById('settingsSaveBtn');
 const prefRestrictionsEl = document.getElementById('prefRestrictions');
 const prefAvoidInput = document.getElementById('prefAvoidInput');
 const prefHighProtein = document.getElementById('prefHighProtein');
+const prefQuickSimple = document.getElementById('prefQuickSimple');
 const prefProteinsEl = document.getElementById('prefProteins');
 
 /* ============ Cook Mode element refs ============ */
@@ -1514,14 +1546,16 @@ async function loadRecipeDetail(cardEl, recipeId) {
 
 // Almost There can easily run to two dozen+ once every non-ready recipe
 // is included — capped to a user-chosen count (still ranked the same way,
-// just truncated) rather than dumping the full list. Kept as the full
-// fetched array so changing the limit re-renders instantly with no refetch.
+// just truncated) rather than dumping the full list, with an "All" option
+// that removes the cap entirely without touching the sort order. Kept as
+// the full fetched array so changing the limit re-renders instantly with
+// no refetch.
 let lastAlmostRecipes = [];
-let almostLimit = Number(almostLimitSelect.value) || 10;
+let almostLimit = almostLimitSelect.value || '10'; // '5' | '10' | '15' | '20' | 'all'
 
 function renderAlmostList() {
   almostListEl.innerHTML = '';
-  const shown = lastAlmostRecipes.slice(0, almostLimit);
+  const shown = almostLimit === 'all' ? lastAlmostRecipes : lastAlmostRecipes.slice(0, Number(almostLimit));
   if (shown.length === 0) {
     almostListEl.innerHTML = '<div class="empty">No close matches.</div>';
     return;
@@ -1530,7 +1564,7 @@ function renderAlmostList() {
 }
 
 almostLimitSelect.addEventListener('change', () => {
-  almostLimit = Number(almostLimitSelect.value) || 10;
+  almostLimit = almostLimitSelect.value || '10';
   renderAlmostList();
 });
 
@@ -2044,6 +2078,7 @@ async function openSettings() {
     });
     prefAvoidInput.value = (data.avoidTerms || []).join(', ');
     prefHighProtein.checked = !!data.highProtein;
+    prefQuickSimple.checked = !!data.quickSimple;
     const favoriteProteins = data.favoriteProteins || [];
     prefProteinsEl.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
       cb.checked = favoriteProteins.includes(cb.value);
@@ -2071,6 +2106,7 @@ settingsSaveBtn.addEventListener('click', async () => {
     .map((s) => s.trim())
     .filter(Boolean);
   const highProtein = prefHighProtein.checked;
+  const quickSimple = prefQuickSimple.checked;
   const favoriteProteins = Array.from(prefProteinsEl.querySelectorAll('input[type="checkbox"]:checked')).map((cb) => cb.value);
 
   settingsSaveBtn.disabled = true;
@@ -2079,7 +2115,7 @@ settingsSaveBtn.addEventListener('click', async () => {
     const res = await fetch('/api/preferences', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ restrictions, avoidTerms, highProtein, favoriteProteins }),
+      body: JSON.stringify({ restrictions, avoidTerms, highProtein, favoriteProteins, quickSimple }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
