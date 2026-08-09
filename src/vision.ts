@@ -36,9 +36,11 @@ If you see a clearly non-food PRODUCT placed in the fridge/pantry — toiletries
 Do NOT report the fridge or pantry's own built-in structure — shelves, drawers, door bins, dividers, liners, ice trays, racks. These are part of the appliance itself, not objects someone placed there — ignore them completely (don't put them in "items" OR "nonFoodItems"). "nonFoodItems" is only for distinct, movable non-food products, never for the furniture holding everything. When no such product is visible, "nonFoodItems" must be an empty array.
 
 First, assess the photo itself. Set "imageQuality" to one of:
-- "ok" — you can make out at least one item with reasonable confidence
-- "blurry" — the image is too out of focus, dark, or low-resolution to identify items confidently
+- "ok" — you can make out at least ONE item, even tentatively. This covers perfectly clear photos AND imperfect ones — real phone photos are routinely underlit, a little soft, or partly out of frame, and that's normal, not a reason to reject the whole thing.
+- "blurry" — the ENTIRE photo is too out of focus, dark, or low-resolution for you to make out a single item's shape, color, or label — there is nothing usable anywhere in the frame.
 - "no_food" — the photo is clear but shows no food, groceries, fridge, or pantry contents (e.g. an empty shelf, a wall, an unrelated object/scene)
+
+Partial legibility is the common case, not the exception — a photo often has some areas sharp and well-lit and others too dark or soft to call. Treat that as normal: report "ok" and extract every item you can make out anywhere in the frame, at whatever confidence that item honestly earns (see below), and simply leave out the parts of the photo you truly cannot read at all. Reserve "blurry" for when NOTHING in the entire photo clears that bar — if you can identify even one item, however tentatively, the correct quality is "ok" with that item included and marked "low" confidence, not "blurry" with an empty list. Throwing away a whole scan because part of it was hard to read is worse than surfacing your uncertain guesses for a human to glance over — that's exactly what "low" confidence is for.
 
 When imageQuality is "blurry" or "no_food", "items" must be an empty array — do not guess at items you can't actually make out.
 
@@ -53,13 +55,17 @@ Correct:
 - "canned black beans" (not "canned goods (unidentified)")
 - "apple juice" (not "apple juice (or similar pale juice)")
 - "jam" (not "jam (or preserves)" — pick the single more likely one)
+- "sparkling water" or "lime soda" (not "green bottle beverage" or "green bottled drink")
 - "leafy greens (lettuce/spinach)" — this parenthetical form is ONLY for a genuine 50/50 call between two SPECIFIC named foods, always leading with the more likely one
 
 Wrong — never produce names shaped like these:
 - "canned goods (unidentified)"
 - "apple juice (or similar pale juice)"
 - "cola (or dark soda)"
+- "green bottle beverage", "colored bottle drink", "jarred condiment", or any other name built from the container's color/shape/material instead of a guess at what's actually inside it
 - anything pairing a specific guess with a vague fallback via "or"
+
+The container-description trap is the single most common way this goes wrong: when a bottle or jar's contents aren't obvious, it's tempting to describe what you can see for certain — the container — instead of the food inside it, which feels less certain. Resist that. A bottle's color, cap, and shape are themselves evidence: a tall green glass bottle is more likely sparkling water, lime soda, or beer than, say, milk — use exactly those cues to commit to one specific drink or food, the same way you would for anything else. This applies just as much under poor lighting or focus as it does in a clear photo. A wrong specific guess marked "low" confidence costs the user one quick correction; a container description gives them nothing to react to at all.
 
 If the same kind of item appears more than once in the photo, name every occurrence with the exact identical string — don't vary the wording between duplicates.
 
