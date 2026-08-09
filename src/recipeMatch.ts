@@ -45,16 +45,21 @@ interface Row {
 }
 
 // A recipe is excluded once ANY active preference conflicts: a checked
-// restriction the recipe doesn't satisfy, or a free-text avoid term
-// matching one of its ingredient names. Hard filter — unlike
-// preferenceScore below, this never lets a "bad" recipe stay visible.
+// restriction the recipe doesn't satisfy, or a free-text avoid/custom-
+// restriction term matching one of its ingredient names. Hard filter —
+// unlike preferenceScore below, this never lets a "bad" recipe stay
+// visible. customRestrictions (free-text, from the Restrictions panel)
+// shares the exact same ingredient-substring check as avoidTerms — a
+// made-up dietary tag would match zero recipes and silently empty every
+// list, so custom restrictions never touch dietaryTags at all.
 function violatesPreferences(recipe: RecipeMatch, prefs: Preferences): boolean {
   if (prefs.restrictions.some((restriction) => !recipe.dietaryTags.includes(restriction))) {
     return true;
   }
-  if (prefs.avoidTerms.length > 0) {
+  const excludeTerms = [...prefs.avoidTerms, ...prefs.customRestrictions];
+  if (excludeTerms.length > 0) {
     const names = recipe.ingredients.map((i) => i.name.toLowerCase());
-    for (const term of prefs.avoidTerms) {
+    for (const term of excludeTerms) {
       if (names.some((name) => name.includes(term) || term.includes(name))) return true;
     }
   }
@@ -75,15 +80,30 @@ function quickSimpleBonus(totalIngredients: number): number {
 // preferences. Never used to exclude a recipe (that's violatesPreferences
 // above); a recipe scoring 0 here still shows up, just lower in the list.
 export function computePreferenceScore(
-  recipe: { dietaryTags: string[]; proteinTypes: string[]; totalIngredients: number },
+  recipe: { dietaryTags: string[]; proteinTypes: string[]; totalIngredients: number; ingredients: RecipeIngredientMatch[] },
   prefs: Preferences,
 ): number {
   let score = 0;
   if (prefs.highProtein && recipe.dietaryTags.includes('high-protein')) score += 2;
-  if (prefs.favoriteProteins.length > 0) {
-    score += recipe.proteinTypes.filter((type) => prefs.favoriteProteins.includes(type)).length;
+  // customFavoriteProteins is free text with no validation against
+  // PROTEIN_TYPES — unioned in here rather than excluded, since a term
+  // that matches no recipe's proteinTypes simply contributes 0, exactly
+  // like an unchecked canonical protein would.
+  const favoriteProteins = [...prefs.favoriteProteins, ...prefs.customFavoriteProteins];
+  if (favoriteProteins.length > 0) {
+    score += recipe.proteinTypes.filter((type) => favoriteProteins.includes(type)).length;
   }
   if (prefs.quickSimple) score += quickSimpleBonus(recipe.totalIngredients);
+  // Free-text taste terms — same ingredient-name substring matching as
+  // avoidTerms/customRestrictions, just additive instead of exclusionary:
+  // a recipe using a matching ingredient ranks a point higher per term,
+  // nothing is ever hidden for not matching.
+  if (prefs.customTasteTerms.length > 0) {
+    const names = recipe.ingredients.map((i) => i.name.toLowerCase());
+    for (const term of prefs.customTasteTerms) {
+      if (names.some((name) => name.includes(term) || term.includes(name))) score += 1;
+    }
+  }
   return score;
 }
 

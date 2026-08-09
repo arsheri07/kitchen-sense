@@ -177,6 +177,20 @@ async function migrate(): Promise<void> {
     await client.query(`ALTER TABLE preferences ADD COLUMN IF NOT EXISTS favorite_proteins TEXT[] NOT NULL DEFAULT '{}'`);
     await client.query(`ALTER TABLE preferences ADD COLUMN IF NOT EXISTS quick_simple BOOLEAN NOT NULL DEFAULT false`);
 
+    // Free-text preference extensions, alongside the fixed checkbox lists
+    // above. Unlike restrictions/favorite_proteins (validated against a
+    // known-good tag list), these are never checked against dietary_tags —
+    // a made-up tag would match zero recipes and silently empty every
+    // list. Instead they're routed through the same ingredient-name
+    // substring matching avoid_terms already uses (recipeMatch.ts):
+    // custom_restrictions hard-excludes like avoid_terms does,
+    // custom_taste_terms soft-ranks the same way, custom_favorite_proteins
+    // is unioned into the favorite-proteins ranking check as free text —
+    // safe because an unmatched protein type just contributes 0.
+    await client.query(`ALTER TABLE preferences ADD COLUMN IF NOT EXISTS custom_restrictions TEXT[] NOT NULL DEFAULT '{}'`);
+    await client.query(`ALTER TABLE preferences ADD COLUMN IF NOT EXISTS custom_taste_terms TEXT[] NOT NULL DEFAULT '{}'`);
+    await client.query(`ALTER TABLE preferences ADD COLUMN IF NOT EXISTS custom_favorite_proteins TEXT[] NOT NULL DEFAULT '{}'`);
+
     // Seed (or re-sync) the recipe catalog. Upserting on the unique name
     // and re-inserting ingredients fresh each run keeps this idempotent —
     // safe to run on every deploy, and edits to SEED_RECIPES take effect

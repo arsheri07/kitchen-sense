@@ -383,9 +383,12 @@ app.put('/api/preferences', async (req, res) => {
     const prefs = await setPreferences(pool, {
       restrictions: body.restrictions,
       avoidTerms: body.avoidTerms,
+      customRestrictions: body.customRestrictions,
       highProtein: body.highProtein,
       favoriteProteins: body.favoriteProteins,
+      customFavoriteProteins: body.customFavoriteProteins,
       quickSimple: body.quickSimple,
+      customTasteTerms: body.customTasteTerms,
     });
     res.status(200).json(prefs);
   } catch (err) {

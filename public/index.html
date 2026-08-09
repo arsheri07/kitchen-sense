@@ -280,6 +280,13 @@
     background: var(--surface-2); color: var(--text);
     transition: transform 0.1s ease, filter 0.15s ease, background 0.15s ease, border-color 0.15s ease;
   }
+  /* Any bare .btn (not just .btn-icon) can carry an inline icon svg — without
+     an explicit size, an unconstrained <svg> falls back to the UA default
+     object size (~150–300px), which blew up scanBtn/resetInventoryBtn into
+     a huge shape overlapping the rest of the card at narrow widths. Base
+     rule here; .btn-icon svg below (same specificity, later in source)
+     still wins for icon-only buttons. */
+  .btn svg { width: 16px; height: 16px; flex-shrink: 0; }
   .btn:active { transform: scale(0.98); }
   .btn-primary { background: var(--accent); border-color: var(--accent); color: #14100a; }
   .btn-primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
@@ -297,6 +304,21 @@
 
   .sample-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-top: 10px; }
   .sample-label { font-size: 11.5px; color: var(--text-faint); font-weight: 600; }
+  /* Subtle first-run nudge toward the no-photo-needed path — a soft accent
+     wash + dashed border, not a hard callout, so it fades into the card
+     once someone already knows the samples are there. */
+  .sample-row-highlight {
+    background: var(--accent-wash);
+    border: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    margin-top: 12px;
+  }
+  .sample-row-highlight .sample-label { color: var(--accent); }
+
+  /* One-line explainer above the scan card — the scan → track → cook
+     flow, for anyone landing on the app for the first time. */
+  .inventory-intro { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin: 0 0 14px; max-width: 60ch; }
 
   /* ============ Inventory toolbar (reset) ============ */
   .inventory-toolbar { display: flex; justify-content: flex-end; margin-bottom: 10px; }
@@ -355,6 +377,7 @@
   }
   .section-toolbar .section-heading { margin: 0; }
   .section-toolbar-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .mealplan-disclaimer { font-size: 11.5px; color: var(--text-faint); line-height: 1.5; margin: 0 0 12px; max-width: 60ch; }
   .toolbar-select {
     border: 1px solid var(--border); border-radius: var(--radius-sm);
     padding: 6px 28px 6px 8px; font-size: 12.5px; background: var(--surface-2); color: var(--text);
@@ -655,6 +678,7 @@
     padding: 9px 11px; font-size: 13px; background: var(--surface-2); color: var(--text);
   }
   .pref-avoid-input:focus-visible { border-color: var(--accent); }
+  .pref-custom-input { margin-top: 13px; min-height: 44px; }
   .pref-hint { font-size: 11.5px; color: var(--text-faint); margin-top: 7px; line-height: 1.5; }
   .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
   @media (max-width: 600px) {
@@ -684,7 +708,11 @@
     .use-soon-badge { font-size: 10px; padding: 2px 7px; }
     .item-detail-body { padding-left: 16px; }
     .item-fields { gap: 10px 12px; }
-    .item-fields .category, .item-fields .expiry { min-width: 0; flex: 1 1 120px; }
+    /* width, not flex-basis: .category/.expiry are children of .field, a
+       COLUMN flex container — `flex: 1 1 120px` there sets a basis on the
+       vertical main axis, not horizontal, which is what rendered the
+       Category select ~120px TALL instead of matching its siblings. */
+    .item-fields .category, .item-fields .expiry { min-width: 0; width: 120px; }
     .ingredient-row { flex-direction: column; align-items: flex-start; gap: 2px; }
     .section-toolbar-actions { width: 100%; }
     .section-toolbar-actions .btn:not(.btn-icon) { flex: 1; }
@@ -754,6 +782,8 @@
   <main>
     <!-- ===================== INVENTORY ===================== -->
     <section id="tab-inventory" class="tab-panel active" role="tabpanel">
+      <p class="inventory-intro">Scan a photo of your fridge or pantry to build your inventory, track what's on hand, and see which recipes you can cook right now.</p>
+
       <div class="inventory-toolbar">
         <div id="resetInventoryWrap">
           <button type="button" id="resetInventoryBtn" class="btn btn-ghost btn-sm">
@@ -785,8 +815,8 @@
             Scan photo(s)
           </button>
         </div>
-        <div class="sample-row">
-          <span class="sample-label">Try a sample:</span>
+        <div class="sample-row sample-row-highlight">
+          <span class="sample-label">No photo handy? Try a sample:</span>
           <button type="button" class="btn btn-ghost btn-sm sample-btn" data-sample="/samples/fridge-open.jpg" data-name="fridge-open.jpg">Fridge</button>
           <button type="button" class="btn btn-ghost btn-sm sample-btn" data-sample="/samples/pantry-shelf.jpg" data-name="pantry-shelf.jpg">Pantry shelf</button>
         </div>
@@ -857,6 +887,7 @@
           <button type="button" id="generatePlanBtn" class="btn btn-primary btn-sm">Generate plan</button>
         </div>
       </div>
+      <p class="mealplan-disclaimer">Assumes today's inventory holds for the whole week — it doesn't track ingredients getting used up day to day within the plan.</p>
       <div id="mealPlanDays"><div class="empty">No meal plan yet — generate one from your current inventory.</div></div>
       <button type="button" id="addPlanToShoppingBtn" class="btn btn-ghost btn-sm add-to-list-btn" style="display:none;">Add whole week's missing ingredients to shopping list</button>
     </section>
@@ -935,6 +966,8 @@
         <div class="pref-group-label">Restrictions</div>
         <div class="pref-hint pref-hint-lead">Hard filter — a recipe violating any checked restriction is excluded entirely.</div>
         <div class="pref-restrictions" id="prefRestrictions"></div>
+        <textarea id="prefCustomRestrictionsInput" class="pref-avoid-input pref-custom-input" placeholder="Other restrictions, e.g. shellfish-free, kosher-style"></textarea>
+        <div class="pref-hint">Comma or newline separated. Matched the same way as avoided ingredients below — any recipe using one of these is excluded entirely.</div>
       </div>
 
       <div class="pref-section">
@@ -956,12 +989,16 @@
             Prefer quick &amp; simple recipes (fewer ingredients)
           </label>
         </div>
+        <textarea id="prefCustomTasteInput" class="pref-avoid-input pref-custom-input" placeholder="Other things you like, e.g. mushrooms, ginger, citrus"></textarea>
+        <div class="pref-hint">Comma or newline separated. A recipe using one of these ranks a little higher — nothing is ever hidden for not matching.</div>
       </div>
 
       <div class="pref-section">
         <div class="pref-group-label">Favorite proteins</div>
         <div class="pref-hint pref-hint-lead">Ranking only, same as above — recipes featuring these rank higher.</div>
         <div class="pref-restrictions" id="prefProteins"></div>
+        <textarea id="prefCustomProteinsInput" class="pref-avoid-input pref-custom-input" placeholder="Other proteins, e.g. duck, tempeh, seitan"></textarea>
+        <div class="pref-hint">Comma or newline separated. Ranks recipes featuring these higher — safe to guess, an unmatched one just has no effect.</div>
       </div>
 
       <div class="modal-actions">
@@ -1058,9 +1095,22 @@ const settingsCancelBtn = document.getElementById('settingsCancelBtn');
 const settingsSaveBtn = document.getElementById('settingsSaveBtn');
 const prefRestrictionsEl = document.getElementById('prefRestrictions');
 const prefAvoidInput = document.getElementById('prefAvoidInput');
+const prefCustomRestrictionsInput = document.getElementById('prefCustomRestrictionsInput');
 const prefHighProtein = document.getElementById('prefHighProtein');
 const prefQuickSimple = document.getElementById('prefQuickSimple');
+const prefCustomTasteInput = document.getElementById('prefCustomTasteInput');
 const prefProteinsEl = document.getElementById('prefProteins');
+const prefCustomProteinsInput = document.getElementById('prefCustomProteinsInput');
+
+// Shared parse for every free-text preference textarea — comma or
+// newline separated, same shape the server expects (recipeMatch.ts does
+// its own trim/lowercase, this just splits the raw input into a list).
+function parseCommaList(value) {
+  return value
+    .split(/[,\n]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
 /* ============ Cook Mode element refs ============ */
 const cookModeOverlay = document.getElementById('cookModeOverlay');
@@ -2276,12 +2326,15 @@ async function openSettings() {
       cb.checked = restrictions.includes(cb.value);
     });
     prefAvoidInput.value = (data.avoidTerms || []).join(', ');
+    prefCustomRestrictionsInput.value = (data.customRestrictions || []).join(', ');
     prefHighProtein.checked = !!data.highProtein;
     prefQuickSimple.checked = !!data.quickSimple;
+    prefCustomTasteInput.value = (data.customTasteTerms || []).join(', ');
     const favoriteProteins = data.favoriteProteins || [];
     prefProteinsEl.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
       cb.checked = favoriteProteins.includes(cb.value);
     });
+    prefCustomProteinsInput.value = (data.customFavoriteProteins || []).join(', ');
   } catch (err) {
     setStatus(`Failed to load preferences: ${err.message}`, true);
   }
@@ -2300,13 +2353,13 @@ document.addEventListener('keydown', (e) => {
 
 settingsSaveBtn.addEventListener('click', async () => {
   const restrictions = Array.from(prefRestrictionsEl.querySelectorAll('input[type="checkbox"]:checked')).map((cb) => cb.value);
-  const avoidTerms = prefAvoidInput.value
-    .split(/[,\n]/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const avoidTerms = parseCommaList(prefAvoidInput.value);
+  const customRestrictions = parseCommaList(prefCustomRestrictionsInput.value);
   const highProtein = prefHighProtein.checked;
   const quickSimple = prefQuickSimple.checked;
+  const customTasteTerms = parseCommaList(prefCustomTasteInput.value);
   const favoriteProteins = Array.from(prefProteinsEl.querySelectorAll('input[type="checkbox"]:checked')).map((cb) => cb.value);
+  const customFavoriteProteins = parseCommaList(prefCustomProteinsInput.value);
 
   settingsSaveBtn.disabled = true;
   settingsSaveBtn.textContent = 'Saving…';
@@ -2314,7 +2367,16 @@ settingsSaveBtn.addEventListener('click', async () => {
     const res = await fetch('/api/preferences', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ restrictions, avoidTerms, highProtein, favoriteProteins, quickSimple }),
+      body: JSON.stringify({
+        restrictions,
+        avoidTerms,
+        customRestrictions,
+        highProtein,
+        favoriteProteins,
+        customFavoriteProteins,
+        quickSimple,
+        customTasteTerms,
+      }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
