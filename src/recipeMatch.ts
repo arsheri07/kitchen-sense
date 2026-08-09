@@ -118,6 +118,19 @@ export function computePreferenceScore(
 export async function matchRecipes(
   pool: Pool,
 ): Promise<{ readyToMake: RecipeMatch[]; almostThere: RecipeMatch[] }> {
+  // An empty inventory has nothing to match against — every recipe would
+  // come back "almost there, missing everything," which isn't a match,
+  // it's just the catalog restated. Recipes should only ever reflect what
+  // has actually been scanned or entered, so a reset inventory means a
+  // reset match list too, generated fresh the moment something's back in
+  // stock. This also keeps the meal planner and "what should I cook"
+  // suggestion (both built on this function) from proposing anything
+  // against zero ingredients.
+  const inventoryCount = await pool.query<{ count: string }>('SELECT COUNT(*) FROM inventory_items');
+  if (Number(inventoryCount.rows[0].count) === 0) {
+    return { readyToMake: [], almostThere: [] };
+  }
+
   const prefs = await getPreferences(pool);
 
   // A single query drives the whole match: for every recipe ingredient,

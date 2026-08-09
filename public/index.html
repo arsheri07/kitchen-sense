@@ -1717,7 +1717,11 @@ function renderAlmostList() {
   almostListEl.innerHTML = '';
   const shown = almostLimit === 'all' ? lastAlmostRecipes : lastAlmostRecipes.slice(0, Number(almostLimit));
   if (shown.length === 0) {
-    almostListEl.innerHTML = '<div class="empty">No close matches.</div>';
+    almostListEl.innerHTML = `<div class="empty">${
+      lastInventoryItems.length === 0
+        ? 'Scan a photo or add an item to see close matches.'
+        : 'No close matches.'
+    }</div>`;
     return;
   }
   for (const recipe of shown) almostListEl.appendChild(recipeCard(recipe, 'almost'));
@@ -1742,7 +1746,11 @@ async function loadRecipeMatches() {
 
     readyListEl.innerHTML = '';
     if (ready.length === 0) {
-      readyListEl.innerHTML = '<div class="empty">Nothing fully matches your inventory yet.</div>';
+      readyListEl.innerHTML = `<div class="empty">${
+        lastInventoryItems.length === 0
+          ? 'Scan a photo or add an item to see what you can cook.'
+          : 'Nothing fully matches your inventory yet.'
+      }</div>`;
     } else {
       for (const recipe of ready) readyListEl.appendChild(recipeCard(recipe, 'ready'));
     }
@@ -2398,9 +2406,13 @@ settingsSaveBtn.addEventListener('click', async () => {
 
 /* ============ Orchestration ============ */
 async function refreshAll() {
-  // use-soon first so inventory rendering knows which items/categories to badge
+  // use-soon first so inventory rendering knows which items/categories to
+  // badge; inventory before recipe matches so loadRecipeMatches can tell
+  // "empty inventory" apart from "items in stock, nothing matches" when
+  // choosing its empty-state message.
   await loadUseSoon();
-  await Promise.all([loadInventory(), loadRecipeMatches(), loadShoppingList(), loadMealPlan()]);
+  await loadInventory();
+  await Promise.all([loadRecipeMatches(), loadShoppingList(), loadMealPlan()]);
 }
 
 refreshAll();
