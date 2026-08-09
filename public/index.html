@@ -1171,6 +1171,11 @@ function renderResetConfirm() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
       setStatus('Inventory reset — scan a fresh photo to get started.');
+      // A fresh inventory deserves a fresh Almost There view too — without
+      // this, a "Show all"/"Show 20" left over from browsing the old
+      // inventory would carry forward into the reset state.
+      almostLimit = '10';
+      almostLimitSelect.value = '10';
       await refreshAll();
     } catch (err) {
       setStatus(err.message, true);

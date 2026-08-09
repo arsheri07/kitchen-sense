@@ -4,6 +4,7 @@ An AI-vision kitchen inventory assistant. Photograph your fridge or pantry, get 
 
 **Live app:** https://appstage-2adc-3000.prg1.zerops.app
 **Dev environment:** https://appdev-2adc-3000.prg1.zerops.app
+**Repository:** https://github.com/arsheri07/kitchen-sense
 
 ---
 
