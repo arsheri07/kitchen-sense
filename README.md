@@ -11,13 +11,13 @@ An AI-vision kitchen inventory assistant. Photograph your fridge or pantry, get 
 
 **Photo → inventory.** Upload one or more photos of a fridge, freezer, or pantry shelf. A vision model identifies each distinct food/grocery item, estimates its quantity and unit, assigns a category, and flags anything it wasn't confident about. Non-food objects it notices (toiletries, cleaning supplies, kitchenware) are reported separately and never added to the inventory. Re-scanning a photo — or scanning several at once for different shelves — merges overlapping items by updating quantity rather than creating duplicate rows. A low-confidence item can be corrected two ways: edit it by hand, or hit "Re-analyze from photo," which re-runs vision against just that item using its already-stored photo.
 
-**Recipe matching.** Every recipe in the catalog is checked against current inventory and split into **Ready to Make** (nothing missing) and **Almost There** (missing 1+ ingredients, capped to a user-chosen count — 5/10/15/20 — so the list stays scannable). A **"What should I cook right now?"** button gives one deterministic best pick: fully ready, prioritizing whatever uses ingredients closest to expiring.
+**Recipe matching.** Every recipe in the catalog is checked against current inventory and split into **Ready to Make** (nothing missing) and **Almost There** (missing 1+ ingredients, with a user-chosen "Show" cap — 5/10/15/20/All — so the list stays scannable by default but nothing is ever hidden from anyone who wants the full list). A **"What should I cook right now?"** button gives one deterministic best pick: fully ready, prioritizing whatever uses ingredients closest to expiring, rendered as its own loading/result/nothing-ready panel on the Recipes tab.
 
-**Dietary preferences.** A settings panel (gear icon) holds two kinds of preference:
-- *Hard restrictions* — vegetarian, vegan, gluten-free, dairy-free, nut-free, plus free-text ingredients to avoid. Any recipe that violates one is excluded outright, everywhere recipes are surfaced.
-- *Soft ranking signals* — "prefer high-protein recipes" and a favorite-protein-types list (chicken, beef, fish, shrimp, egg, tofu, legumes). These never hide a recipe; they just rank better matches higher while everything else stays visible.
+**Dietary preferences.** A settings panel (gear icon) holds two kinds of preference, each with a fixed checklist plus a free-text field for anything not on it:
+- *Hard restrictions* — vegetarian, vegan, pescatarian, gluten-free, dairy-free, nut-free, low-carb, keto, plus free-text ingredients to avoid and free-text custom restrictions (matched the same way, by ingredient name). Any recipe that violates one is excluded outright, everywhere recipes are surfaced.
+- *Soft ranking signals* — "prefer high-protein recipes", "prefer quick & simple recipes (fewer ingredients)", a favorite-protein-types list (chicken, beef, fish, shrimp, egg, tofu, legumes, pork, turkey, lamb) plus free-text custom proteins, and free-text custom taste terms matched against ingredient names. These never hide a recipe; they just rank better matches higher while everything else stays visible — an unmatched custom term simply contributes nothing.
 
-Both restrictions and dietary/protein tags are derived automatically from each recipe's ingredient list, not hand-authored, so the classification can't drift out of sync.
+Both restrictions and dietary/protein tags are derived automatically from each recipe's ingredient list, not hand-authored, so the classification can't drift out of sync. Free-text preferences are never checked against those derived tags (a made-up tag would match nothing and silently empty every list) — they're routed through the same ingredient-substring matching as the avoid-ingredients field.
 
 **Weekly meal plan.** Generates a 5–7 day plan from the recipe catalog and current inventory: days tied to soon-expiring stock are placed first (soonest expiry wins), remaining days are filled greedily to minimize additional shopping across the week, with dietary preference as a tie-breaker throughout. Each day expands into the full recipe (photo, ingredients with proportions, numbered steps) with a Start Cooking shortcut.
 
@@ -57,12 +57,12 @@ Express app (src/app.ts) ── routes for inventory, recipes, meal plan,
 | `categories.ts` | Inventory category taxonomy (Produce, Dairy, Protein, Pantry/Canned, Condiments, Beverages, Frozen, Other) |
 | `expiry.ts` | Per-category default shelf-life estimates |
 | `recipeMatch.ts` | Ready-to-make / almost-there matching, dietary-preference filtering and ranking |
-| `preferences.ts` | Dietary preference storage — restrictions, avoid terms, high-protein, favorite proteins |
+| `preferences.ts` | Dietary preference storage — restrictions, avoid terms, high-protein, quick-simple, favorite proteins, plus their free-text custom counterparts |
 | `urgency.ts` | Shared "soonest expiring ingredient per recipe" calculation |
 | `mealPlan.ts` | Weekly meal plan generation (urgency-first, then shopping-minimizing greedy fill) |
 | `suggest.ts` | "What should I cook right now?" single best pick |
 | `shoppingList.ts` | Shopping list generation (per recipe / per plan), manual items, multi-recipe source tagging |
-| `seedRecipes.ts` | The recipe catalog (35 recipes) plus derivation of dietary tags and protein types from ingredients |
+| `seedRecipes.ts` | The recipe catalog (38 recipes) plus derivation of dietary tags and protein types from ingredients |
 | `migrate.ts` | Idempotent schema migration + recipe reseed, run once per deploy |
 | `errors.ts` | Typed errors for the upload/vision pipeline |
 | `index.ts` | HTTP server bootstrap |
