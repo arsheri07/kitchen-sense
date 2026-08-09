@@ -23,6 +23,8 @@
     --good-wash: rgba(70, 169, 124, 0.14);
     --warn: #E2574C;
     --warn-wash: rgba(226, 87, 76, 0.16);
+    --info: #5B9EE8;
+    --info-wash: rgba(91, 158, 232, 0.14);
     --radius-lg: 16px;
     --radius-md: 10px;
     --radius-sm: 7px;
@@ -50,6 +52,8 @@
       --good-wash: rgba(46, 140, 89, 0.10);
       --warn: #C33C2E;
       --warn-wash: rgba(195, 60, 46, 0.10);
+      --info: #2C6FB0;
+      --info-wash: rgba(44, 111, 176, 0.09);
       --shadow-card: 0 1px 2px rgba(30, 25, 15, 0.06), 0 12px 28px -18px rgba(30, 25, 15, 0.18);
       --shadow-hero: 0 1px 2px rgba(30, 25, 15, 0.06), 0 24px 50px -22px rgba(168, 101, 11, 0.16);
     }
@@ -61,6 +65,7 @@
     --accent: #E7A33C; --accent-hover: #F4B85B; --accent-press: #C6821F; --accent-wash: rgba(231, 163, 60, 0.12);
     --good: #46A97C; --good-wash: rgba(70, 169, 124, 0.14);
     --warn: #E2574C; --warn-wash: rgba(226, 87, 76, 0.16);
+    --info: #5B9EE8; --info-wash: rgba(91, 158, 232, 0.14);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -16px rgba(0, 0, 0, 0.55);
     --shadow-hero: 0 1px 2px rgba(0, 0, 0, 0.3), 0 24px 60px -20px rgba(231, 163, 60, 0.18);
   }
@@ -71,6 +76,7 @@
     --accent: #A8650B; --accent-hover: #8F5509; --accent-press: #7A480A; --accent-wash: rgba(168, 101, 11, 0.09);
     --good: #2E8C59; --good-wash: rgba(46, 140, 89, 0.10);
     --warn: #C33C2E; --warn-wash: rgba(195, 60, 46, 0.10);
+    --info: #2C6FB0; --info-wash: rgba(44, 111, 176, 0.09);
     --shadow-card: 0 1px 2px rgba(30, 25, 15, 0.06), 0 12px 28px -18px rgba(30, 25, 15, 0.18);
     --shadow-hero: 0 1px 2px rgba(30, 25, 15, 0.06), 0 24px 50px -22px rgba(168, 101, 11, 0.16);
   }
@@ -87,6 +93,29 @@
   }
   button, input, select { font-family: inherit; color: inherit; }
   button { cursor: pointer; }
+  /* Every <select> in the app shares this reset — without it, mobile
+     browsers (iOS/Android in particular) apply their own native control
+     chrome on top of author padding, which is what made the category
+     select render ~3x taller than its sibling text inputs instead of
+     matching them. A custom chevron replaces the native arrow appearance:
+     none removes; color is duplicated per theme below since data-URI
+     backgrounds can't reference CSS custom properties. */
+  select {
+    appearance: none; -webkit-appearance: none; -moz-appearance: none;
+    background-repeat: no-repeat;
+    background-position: right 9px center;
+    background-size: 11px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238B8F99' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  }
+  @media (prefers-color-scheme: light) {
+    select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6A61' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); }
+  }
+  :root[data-theme="dark"] select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238B8F99' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  }
+  :root[data-theme="light"] select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6A61' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
   h1, h2, h3 { margin: 0; text-wrap: balance; }
   .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
@@ -181,6 +210,7 @@
   }
   .scan-frame {
     position: relative;
+    max-width: 100%;
     border-radius: var(--radius-md);
     background: var(--surface-2);
     aspect-ratio: 16 / 10;
@@ -193,11 +223,25 @@
   .scan-frame img { width: 100%; height: 100%; object-fit: cover; display: none; }
   .scan-frame.has-preview img { display: block; }
   .scan-frame.has-preview .scan-placeholder { display: none; }
-  .scan-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-faint); padding: 20px; text-align: center; }
-  .scan-placeholder svg { width: 34px; height: 34px; }
+  .scan-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-faint); padding: 20px; text-align: center; max-width: 100%; min-width: 0; }
+  /* Sized relative to the dropzone (max-width + aspect-ratio) rather than
+     a fixed px value, so it scales down instead of overflowing its frame
+     at narrow widths and can never visually spill onto the Choose/Scan
+     buttons below. */
+  .scan-placeholder svg { width: 100%; max-width: 34px; height: auto; aspect-ratio: 1 / 1; flex-shrink: 0; }
   .scan-placeholder-text { font-size: 13px; font-weight: 500; }
   .scan-placeholder-sub { font-size: 11.5px; color: var(--text-faint); }
-  .corner { position: absolute; width: 22px; height: 22px; border: 2px solid var(--accent); opacity: 0.85; }
+  /* Same reasoning as the placeholder icon — a percentage of the frame's
+     own box (its containing block, since corners are absolutely
+     positioned) instead of a fixed px size, clamped so it never grows
+     past its original size on larger screens either. */
+  .corner {
+    position: absolute;
+    width: clamp(14px, 6%, 22px);
+    height: clamp(14px, 6%, 22px);
+    border: 2px solid var(--accent);
+    opacity: 0.85;
+  }
   .corner.tl { top: 10px; left: 10px; border-right: none; border-bottom: none; border-top-left-radius: 6px; }
   .corner.tr { top: 10px; right: 10px; border-left: none; border-bottom: none; border-top-right-radius: 6px; }
   .corner.bl { bottom: 10px; left: 10px; border-right: none; border-top: none; border-bottom-left-radius: 6px; }
@@ -286,6 +330,7 @@
     padding: 8px 9px; font-size: 13px; background: var(--surface-2); color: var(--text);
     min-width: 0; width: 100%;
   }
+  .manual-add-form select { padding-right: 28px; }
   @media (max-width: 600px) {
     .manual-add-form { grid-template-columns: 1fr 1fr; }
     .manual-add-form button { grid-column: 1 / -1; }
@@ -312,7 +357,7 @@
   .section-toolbar-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
   .toolbar-select {
     border: 1px solid var(--border); border-radius: var(--radius-sm);
-    padding: 6px 8px; font-size: 12.5px; background: var(--surface-2); color: var(--text);
+    padding: 6px 28px 6px 8px; font-size: 12.5px; background: var(--surface-2); color: var(--text);
   }
 
   /* ============ Inline single-field form (shopping list manual add) ============ */
@@ -382,6 +427,7 @@
     border: 1px solid var(--border); border-radius: var(--radius-sm);
     padding: 6px 8px; font-size: 12.5px; background: var(--surface-2); color: var(--text);
   }
+  .item-fields select { padding-right: 28px; }
   .item-fields .qty { width: 56px; font-family: var(--font-mono); }
   .item-fields .unit { width: 64px; }
   .item-fields .category { min-width: 128px; }
@@ -436,6 +482,46 @@
   .recipe-steps li { font-size: 13.5px; line-height: 1.5; color: var(--text); padding-left: 4px; }
   .recipe-detail-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
+  /* ============ Cook suggestion ("What should I cook?" result) ============ */
+  .cook-suggestion {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    background: var(--surface); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+    border-radius: var(--radius-md); box-shadow: var(--shadow-card);
+    padding: 13px 14px; margin-bottom: 12px;
+  }
+  .cook-suggestion[hidden] { display: none; }
+  .cook-suggestion.is-empty, .cook-suggestion.is-error { border-color: var(--border); }
+  .cook-suggestion-body { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+  .cook-suggestion-icon {
+    width: 32px; height: 32px; border-radius: 100%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent-wash); color: var(--accent);
+  }
+  .cook-suggestion.is-empty .cook-suggestion-icon, .cook-suggestion.is-error .cook-suggestion-icon {
+    background: var(--surface-2); color: var(--text-faint);
+  }
+  .cook-suggestion-icon svg { width: 16px; height: 16px; }
+  .cook-suggestion-spinner {
+    width: 16px; height: 16px; border-radius: 100%; flex-shrink: 0;
+    border: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    border-top-color: var(--accent);
+    animation: cook-suggestion-spin 0.7s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cook-suggestion-spinner { animation: none; }
+  }
+  @keyframes cook-suggestion-spin { to { transform: rotate(360deg); } }
+  .cook-suggestion-text { min-width: 0; }
+  .cook-suggestion-title { font-weight: 700; font-size: 13.5px; color: var(--text); }
+  .cook-suggestion-title strong { color: var(--accent); }
+  .cook-suggestion-message { font-size: 12px; color: var(--text-muted); margin: 3px 0 0; line-height: 1.5; }
+  .cook-suggestion-badges { display: flex; gap: 6px; margin-top: 7px; flex-wrap: wrap; }
+  .cook-suggestion-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  @media (max-width: 600px) {
+    .cook-suggestion { flex-direction: column; align-items: stretch; }
+    .cook-suggestion-actions { justify-content: flex-end; }
+  }
+
   /* ============ Shopping list ============ */
   .shop-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
   .shop-item:last-child { border-bottom: none; }
@@ -478,13 +564,22 @@
   .meal-plan-day-card .recipe-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* ============ Confidence review flag ============ */
+  /* Informational, not alarming — a low-confidence vision detection isn't
+     an error, just worth a glance, so it gets the blue "info" token
+     rather than the red "warn" token used for use-soon/expiry. */
   .review-badge {
     display: inline-flex; align-items: center; gap: 4px;
-    background: var(--warn-wash); color: var(--warn);
+    background: var(--info-wash); color: var(--info);
     font-size: 10.5px; font-weight: 700;
     padding: 2px 8px; border-radius: 100px; white-space: nowrap; flex-shrink: 0;
   }
   .review-badge svg { width: 10px; height: 10px; }
+  /* Groups the item name with its review hint so the hint can sit on its
+     own line directly underneath, visible by default — not something a
+     user has to hover to discover. */
+  .item-name-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .item-name-col .item-name-display { flex: none; }
+  .item-review-hint { font-size: 11px; color: var(--info); line-height: 1.35; }
   .reanalyze-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
   .reanalyze-note { font-size: 11.5px; color: var(--text-muted); }
 
@@ -728,6 +823,7 @@
           </button>
         </div>
       </div>
+      <div id="cookSuggestionPanel" class="cook-suggestion" hidden aria-live="polite"></div>
       <div id="readyList"><div class="empty">Loading…</div></div>
 
       <div class="section-toolbar">
@@ -952,6 +1048,7 @@ const mealPlanTabBadge = document.getElementById('mealPlanTabBadge');
 const whatToCookBtn = document.getElementById('whatToCookBtn');
 const copyListBtn = document.getElementById('copyListBtn');
 const almostLimitSelect = document.getElementById('almostLimit');
+const cookSuggestionPanel = document.getElementById('cookSuggestionPanel');
 
 /* ============ Settings (dietary preferences) element refs ============ */
 const settingsBtn = document.getElementById('settingsBtn');
@@ -1195,7 +1292,12 @@ function itemRow(item) {
   // that deliberate click.
   const needsReview = item.confidence === 'low';
   const reviewBadge = needsReview
-    ? `<span class="review-badge" title="Vision wasn't confident about this detection"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Review</span>`
+    ? `<span class="review-badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Review</span>`
+    : '';
+  // Shown directly under the name by default — not behind a hover-only
+  // title tooltip, which is easy to miss and unreachable on touch.
+  const reviewHint = needsReview
+    ? '<span class="item-review-hint">Vision wasn\'t confident about this one — worth a quick check</span>'
     : '';
   const reanalyzeRow = item.photo_key
     ? `<div class="reanalyze-row">
@@ -1209,7 +1311,10 @@ function itemRow(item) {
   row.innerHTML = `
     <button type="button" class="item-summary" aria-expanded="false">
       <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-      <span class="item-name-display">${escapeAttr(item.name)}</span>
+      <span class="item-name-col">
+        <span class="item-name-display">${escapeAttr(item.name)}</span>
+        ${reviewHint}
+      </span>
       <span class="item-qty-display mono">${item.quantity} ${escapeAttr(item.unit)}</span>
       ${reviewBadge}
       ${isUseSoon ? '<span class="expiry-inline-badge warn">use soon</span>' : ''}
@@ -2016,24 +2121,96 @@ document.addEventListener('keydown', (e) => {
 
 /* ============ What should I cook right now? ============ */
 // A deterministic single best pick: fully ready, closest to expiring,
-// preference-respecting.
-whatToCookBtn.addEventListener('click', async () => {
-  whatToCookBtn.disabled = true;
-  try {
-    const res = await fetch('/api/recipes/suggest');
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+// preference-respecting. Renders into its own panel right in the Recipes
+// tab (not the Inventory tab's #status bar, which lives on a hidden
+// tab-panel from here and was silently swallowing every response) —
+// loading, a real result, and "nothing ready" are all its own visible,
+// dismissible state rather than an invisible side effect.
+const COOK_SUGGESTION_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a6 6 0 1 1-12 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>';
+const COOK_SUGGESTION_INFO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>';
+const COOK_SUGGESTION_CLOSE_BTN = `
+  <button type="button" class="btn btn-icon btn-ghost cook-suggestion-close" aria-label="Dismiss">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+  </button>`;
 
-    if (!data.recipe) {
-      setStatus(data.message || 'Nothing is fully ready to make right now.', true);
-      return;
-    }
+function wireCookSuggestionClose() {
+  cookSuggestionPanel.querySelector('.cook-suggestion-close').addEventListener('click', closeCookSuggestion);
+}
 
-    const cardEl = readyListEl.querySelector(`[data-recipe-id="${data.recipe.id}"]`);
-    if (!cardEl) {
-      setStatus(`Best pick right now: ${data.recipe.name}`);
-      return;
-    }
+function closeCookSuggestion() {
+  cookSuggestionPanel.hidden = true;
+  cookSuggestionPanel.innerHTML = '';
+  whatToCookBtn.focus();
+}
+
+function renderCookSuggestionLoading() {
+  cookSuggestionPanel.className = 'cook-suggestion';
+  cookSuggestionPanel.hidden = false;
+  cookSuggestionPanel.innerHTML = `
+    <div class="cook-suggestion-body">
+      <span class="cook-suggestion-spinner" aria-hidden="true"></span>
+      <span class="cook-suggestion-text">
+        <span class="cook-suggestion-title">Finding your best match…</span>
+      </span>
+    </div>
+  `;
+}
+
+function renderCookSuggestionEmpty(message) {
+  cookSuggestionPanel.className = 'cook-suggestion is-empty';
+  cookSuggestionPanel.innerHTML = `
+    <div class="cook-suggestion-body">
+      <span class="cook-suggestion-icon" aria-hidden="true">${COOK_SUGGESTION_INFO_ICON}</span>
+      <span class="cook-suggestion-text">
+        <span class="cook-suggestion-title">Nothing's fully ready yet</span>
+        <p class="cook-suggestion-message">${escapeAttr(message)}</p>
+      </span>
+    </div>
+    <div class="cook-suggestion-actions">${COOK_SUGGESTION_CLOSE_BTN}</div>
+  `;
+  wireCookSuggestionClose();
+  cookSuggestionPanel.querySelector('.cook-suggestion-close').focus();
+}
+
+function renderCookSuggestionError(message) {
+  cookSuggestionPanel.className = 'cook-suggestion is-error';
+  cookSuggestionPanel.innerHTML = `
+    <div class="cook-suggestion-body">
+      <span class="cook-suggestion-icon" aria-hidden="true">${COOK_SUGGESTION_INFO_ICON}</span>
+      <span class="cook-suggestion-text">
+        <span class="cook-suggestion-title">Couldn't check right now</span>
+        <p class="cook-suggestion-message">${escapeAttr(message)}</p>
+      </span>
+    </div>
+    <div class="cook-suggestion-actions">${COOK_SUGGESTION_CLOSE_BTN}</div>
+  `;
+  wireCookSuggestionClose();
+  cookSuggestionPanel.querySelector('.cook-suggestion-close').focus();
+}
+
+function renderCookSuggestionResult(recipe, urgencyDays) {
+  const urgentBadge = urgencyDays !== null
+    ? `<span class="urgent-badge">${urgencyDays < 0 ? 'uses overdue item' : urgencyDays === 0 ? 'uses item due today' : `uses item in ${urgencyDays}d`}</span>`
+    : '';
+  cookSuggestionPanel.className = 'cook-suggestion is-result';
+  cookSuggestionPanel.innerHTML = `
+    <div class="cook-suggestion-body">
+      <span class="cook-suggestion-icon" aria-hidden="true">${COOK_SUGGESTION_ICON}</span>
+      <span class="cook-suggestion-text">
+        <span class="cook-suggestion-title">Cook this: <strong>${escapeAttr(recipe.name)}</strong></span>
+        <div class="cook-suggestion-badges"><span class="ready-pill">READY</span>${urgentBadge}</div>
+      </span>
+    </div>
+    <div class="cook-suggestion-actions">
+      <button type="button" class="btn btn-primary btn-sm cook-suggestion-view">View recipe</button>
+      ${COOK_SUGGESTION_CLOSE_BTN}
+    </div>
+  `;
+  wireCookSuggestionClose();
+  const viewBtn = cookSuggestionPanel.querySelector('.cook-suggestion-view');
+  viewBtn.addEventListener('click', () => {
+    const cardEl = readyListEl.querySelector(`[data-recipe-id="${recipe.id}"]`);
+    if (!cardEl) return;
     if (!cardEl.classList.contains('expanded')) {
       cardEl.querySelector('.recipe-summary').click();
     }
@@ -2042,8 +2219,30 @@ whatToCookBtn.addEventListener('click', async () => {
       [{ boxShadow: '0 0 0 0 var(--accent-wash)' }, { boxShadow: '0 0 0 8px var(--accent-wash)' }, { boxShadow: '0 0 0 0 var(--accent-wash)' }],
       { duration: 900, easing: 'ease-out' },
     );
+  });
+  viewBtn.focus();
+}
+
+document.addEventListener('keydown', (e) => {
+  if (!cookSuggestionPanel.hidden && e.key === 'Escape') closeCookSuggestion();
+});
+
+whatToCookBtn.addEventListener('click', async () => {
+  whatToCookBtn.disabled = true;
+  renderCookSuggestionLoading();
+  cookSuggestionPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  try {
+    const res = await fetch('/api/recipes/suggest', { cache: 'no-store' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+
+    if (!data.recipe) {
+      renderCookSuggestionEmpty(data.message || 'Nothing is fully ready to make right now — scan more items or check Almost There.');
+      return;
+    }
+    renderCookSuggestionResult(data.recipe, data.urgencyDays);
   } catch (err) {
-    setStatus(err.message, true);
+    renderCookSuggestionError(err.message);
   } finally {
     whatToCookBtn.disabled = false;
   }
