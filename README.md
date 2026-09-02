@@ -1,10 +1,15 @@
 # KitchenSense
 
-An AI-vision kitchen inventory assistant. Photograph your fridge or pantry, get a structured, editable inventory back, and let the app tell you what to cook, plan your week, and build your shopping list from there.
+An AI-vision kitchen inventory assistant. Photograph your fridge or pantry,
+get a structured, editable inventory back, and let the app tell you what to
+cook, plan your week, and build your shopping list from there.
 
-**Live app:** https://appstage-2adc-3000.prg1.zerops.app
-**Dev environment:** https://appdev-2adc-3000.prg1.zerops.app
-**Repository:** https://github.com/arsheri07/kitchen-sense
+**[Watch the walkthrough →](https://youtu.be/wP5a_lSzNog)**
+
+Built solo in 48 hours for **The Zerops Challenge** (WeMakeDevs × Zerops).
+
+> The live deployment was retired once the hackathon credit period ended.
+> The walkthrough video shows the full flow.
 
 ---
 
