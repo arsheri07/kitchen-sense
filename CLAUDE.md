@@ -1,6 +1,8 @@
-# nodejs-hello-world-app
+# KitchenSense
 
-Express + TypeScript app with PostgreSQL, demonstrating idempotent migrations via `zsc execOnce` on Zerops.
+AI-vision kitchen inventory assistant: Express + TypeScript + PostgreSQL, deployed on Zerops with idempotent migrations via `zsc execOnce`. See README.md for features and architecture.
+
+Run the unit tests with `npm test` (Node's built-in runner, no database needed).
 
 ## Zerops service facts
 

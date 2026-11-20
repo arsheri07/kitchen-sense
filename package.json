@@ -1,10 +1,12 @@
 {
-  "name": "nodejs-hello-world",
+  "name": "kitchen-sense",
   "version": "1.0.0",
+  "description": "AI-vision kitchen inventory: photo to inventory, recipe matching, meal plans, shopping lists",
   "scripts": {
     "build": "tsc",
     "start:prod": "node dist/index.js",
-    "dev": "ts-node src/index.ts"
+    "dev": "ts-node src/index.ts",
+    "test": "TS_NODE_TRANSPILE_ONLY=1 node --require ts-node/register --test test/*.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.699.0",

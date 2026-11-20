@@ -29,6 +29,8 @@ Both restrictions and dietary/protein tags are derived automatically from each r
 
 **Shopping list.** Auto-generated from a single recipe's missing ingredients or from the whole week's plan at once — items needed by more than one recipe get tagged with every recipe that needs them, not duplicated. View it as a flat checklist or grouped into collapsible per-dish sections. Manually-added items are visually distinct from recipe-generated ones. A "Copy list" button copies the current list as plain text.
 
+**Ingredient swaps.** A missing ingredient isn't always a trip to the store. If something already in the inventory can stand in for it (olive oil for butter, lime for lemon, shallots for onion, parsley for cilantro), the recipe card shows the swap right on the ingredient tag (`Butter → Olive oil`, with the how-to in a tooltip), and a recipe whose every gap is covered is marked **Ready with swaps** and moved to the top of Almost There. Swaps are checked against the cook's dietary settings by re-deriving the recipe's dietary tags *with the swap applied*, so a dairy-free cook is never told to use heavy cream and a gluten-free cook is never told to thicken with flour. An inventory item covers one gap at most, and never one the recipe already uses. The weekly meal planner counts swapped ingredients as already owned when it minimizes shopping.
+
 **Cook Mode.** A full-screen, distraction-free step-by-step view for any recipe: one step at a time, large text, next/back navigation, a per-step done checkbox, and an automatically parsed countdown timer for any step that mentions a duration (e.g. "simmer 10 minutes").
 
 **Reset Inventory.** Clears inventory, the shopping list, and the stored meal plan together (a two-step confirm to avoid accidental triggers) — every dependent view goes back to a genuine empty state, not stale leftovers.
@@ -67,6 +69,7 @@ Express app (src/app.ts) ── routes for inventory, recipes, meal plan,
 | `urgency.ts` | Shared "soonest expiring ingredient per recipe" calculation |
 | `mealPlan.ts` | Weekly meal plan generation (urgency-first, then shopping-minimizing greedy fill) |
 | `suggest.ts` | "What should I cook right now?" single best pick |
+| `substitutions.ts` | Ingredient swap table and `planSwaps()`, restriction-safe substitutes drawn from current inventory |
 | `shoppingList.ts` | Shopping list generation (per recipe / per plan), manual items, multi-recipe source tagging |
 | `seedRecipes.ts` | The recipe catalog (38 recipes) plus derivation of dietary tags and protein types from ingredients |
 | `migrate.ts` | Idempotent schema migration + recipe reseed, run once per deploy |
@@ -147,3 +150,14 @@ node dist/index.js           # start on :3000
 ```
 
 No frontend build step — `public/index.html` is served as-is by `express.static`.
+
+---
+
+## Tests
+
+```bash
+npm install
+npm test
+```
+
+19 unit tests on Node's built-in test runner, no database required. They cover swap planning (including the dietary-safety and no-double-use rules), dietary tag and protein derivation, catalog integrity, expiry estimates, preference scoring, and `matchRecipes()` end to end against a small in-memory stand-in for the Postgres pool. CI runs them plus a TypeScript type check on every push.

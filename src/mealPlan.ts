@@ -39,6 +39,15 @@ export async function generateMealPlan(pool: Pool, requestedDays: unknown): Prom
   const allRecipes = [...readyToMake, ...almostThere];
   const urgencyMap = await computeUrgency(pool);
 
+  // What each recipe actually requires buying: its missing ingredients minus
+  // any that an in-stock substitute covers (see substitutions.ts). Two
+  // recipes swapping in the same item on different days is allowed — a
+  // bottle of oil lasts more than one dinner.
+  const toBuy = (r: RecipeMatch) => {
+    const swapped = new Set((r.swaps ?? []).map((s) => s.missing));
+    return r.missingIngredients.filter((m) => !swapped.has(m));
+  };
+
   const candidates = allRecipes.map((r) => ({ ...r, urgencyDays: urgencyMap.get(r.id) ?? null }));
 
   // "Urgent" means expiring within the plan's own horizon (a 7-day plan
@@ -66,7 +75,7 @@ export async function generateMealPlan(pool: Pool, requestedDays: unknown): Prom
     if (selected.length >= days) break;
     selected.push(c);
     usedIds.add(c.id);
-    for (const m of c.missingIngredients) cumulativeMissing.add(m.toLowerCase());
+    for (const m of toBuy(c)) cumulativeMissing.add(m.toLowerCase());
   }
 
   while (selected.length < days) {
@@ -75,7 +84,7 @@ export async function generateMealPlan(pool: Pool, requestedDays: unknown): Prom
 
     const scored = remaining.map((c) => ({
       c,
-      newMissing: c.missingIngredients.filter((m) => !cumulativeMissing.has(m.toLowerCase())).length,
+      newMissing: toBuy(c).filter((m) => !cumulativeMissing.has(m.toLowerCase())).length,
     }));
     // Same tie-breaking rule as the urgent phase: minimizing new shopping
     // stays the primary objective, preference only decides between
@@ -90,7 +99,7 @@ export async function generateMealPlan(pool: Pool, requestedDays: unknown): Prom
     const pick = scored[0].c;
     selected.push(pick);
     usedIds.add(pick.id);
-    for (const m of pick.missingIngredients) cumulativeMissing.add(m.toLowerCase());
+    for (const m of toBuy(pick)) cumulativeMissing.add(m.toLowerCase());
   }
 
   await pool.query('DELETE FROM meal_plan_days');

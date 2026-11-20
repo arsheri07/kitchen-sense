@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 import { fetchDishPhoto } from './pexels';
 import { getPreferences, Preferences } from './preferences';
+import { planSwaps, Swap } from './substitutions';
 
 export interface RecipeIngredientMatch {
   name: string;
@@ -31,6 +32,11 @@ export interface RecipeMatch {
   // 0 when no preference is set or nothing matches. Purely a ranking
   // signal, computed fresh on every match/plan/suggest call.
   preferenceScore: number;
+  // Missing ingredients that something already in the inventory can stand
+  // in for (see substitutions.ts), and how many gaps remain after them.
+  // missingAfterSwaps === 0 means "ready with swaps" — no shopping needed.
+  swaps: Swap[];
+  missingAfterSwaps: number;
 }
 
 interface Row {
@@ -40,6 +46,7 @@ interface Row {
   dietary_tags: string[] | null;
   protein_types: string[] | null;
   ingredient_name: string;
+  match_term: string;
   amount: string | null;
   in_stock: boolean;
 }
@@ -143,6 +150,7 @@ export async function matchRecipes(
       r.dietary_tags,
       r.protein_types,
       ri.ingredient_name,
+      ri.match_term,
       ri.amount,
       EXISTS (
         SELECT 1 FROM inventory_items ii
@@ -154,6 +162,7 @@ export async function matchRecipes(
   `);
 
   const byRecipe = new Map<number, RecipeMatch>();
+  const termsByRecipe = new Map<number, string[]>();
 
   for (const row of result.rows) {
     let recipe = byRecipe.get(row.recipe_id);
@@ -170,9 +179,13 @@ export async function matchRecipes(
         dietaryTags: row.dietary_tags ?? [],
         proteinTypes: row.protein_types ?? [],
         preferenceScore: 0,
+        swaps: [],
+        missingAfterSwaps: 0,
       };
       byRecipe.set(row.recipe_id, recipe);
+      termsByRecipe.set(row.recipe_id, []);
     }
+    termsByRecipe.get(row.recipe_id)!.push(row.match_term);
     recipe.totalIngredients += 1;
     recipe.ingredients.push({ name: row.ingredient_name, amount: row.amount, inStock: row.in_stock });
     if (row.in_stock) {
@@ -182,10 +195,30 @@ export async function matchRecipes(
     }
   }
 
+  const inventoryNames = (await pool.query<{ name: string }>('SELECT name FROM inventory_items'))
+    .rows.map((r) => r.name);
+  const swapRules = {
+    restrictions: prefs.restrictions,
+    avoidTerms: [...prefs.avoidTerms, ...prefs.customRestrictions],
+  };
+
   const all = Array.from(byRecipe.values())
     .map((r) => ({ ...r, missingCount: r.missingIngredients.length }))
     .filter((r) => !violatesPreferences(r, prefs))
-    .map((r) => ({ ...r, preferenceScore: computePreferenceScore(r, prefs) }));
+    .map((r) => {
+      const terms = termsByRecipe.get(r.id) ?? [];
+      const swaps = r.missingCount === 0 ? [] : planSwaps(
+        r.ingredients.map((ing, idx) => ({ name: ing.name, matchTerm: terms[idx], inStock: ing.inStock })),
+        inventoryNames,
+        swapRules,
+      );
+      return {
+        ...r,
+        swaps,
+        missingAfterSwaps: r.missingCount - swaps.length,
+        preferenceScore: computePreferenceScore(r, prefs),
+      };
+    });
 
   // Preference score leads both lists — a recipe that better matches
   // stated taste preferences ranks higher even with more missing
@@ -203,7 +236,13 @@ export async function matchRecipes(
   const almostThere = all
     .filter((r) => r.missingCount > 0)
     .sort((a, b) => {
+      // "Ready with swaps" (nothing left to buy) beats everything else —
+      // it's the only Almost There recipe you can cook tonight.
+      const aSwapReady = a.missingAfterSwaps === 0 ? 0 : 1;
+      const bSwapReady = b.missingAfterSwaps === 0 ? 0 : 1;
+      if (aSwapReady !== bSwapReady) return aSwapReady - bSwapReady;
       if (b.preferenceScore !== a.preferenceScore) return b.preferenceScore - a.preferenceScore;
+      if (a.missingAfterSwaps !== b.missingAfterSwaps) return a.missingAfterSwaps - b.missingAfterSwaps;
       if (a.missingCount !== b.missingCount) return a.missingCount - b.missingCount;
       if (b.matchedIngredients.length !== a.matchedIngredients.length) {
         return b.matchedIngredients.length - a.matchedIngredients.length;

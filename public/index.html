@@ -516,11 +516,13 @@
   .recipe-name { font-weight: 700; font-size: 14.5px; }
   .recipe-desc { color: var(--text-muted); font-size: 12px; margin: 0 0 12px; line-height: 1.4; }
   .missing-pill { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--warn); background: var(--warn-wash); padding: 2px 8px; border-radius: 100px; white-space: nowrap; flex-shrink: 0; }
+  .swap-pill { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--info); background: var(--info-wash); padding: 2px 8px; border-radius: 100px; white-space: nowrap; flex-shrink: 0; }
   .ready-pill { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--good); background: var(--good-wash); padding: 2px 8px; border-radius: 100px; white-space: nowrap; flex-shrink: 0; }
   .tags { margin-top: 7px; display: flex; flex-wrap: wrap; gap: 5px; }
   .tag { font-size: 10.5px; font-weight: 600; padding: 3px 9px; border-radius: 100px; }
   .tag.have { background: var(--good-wash); color: var(--good); }
   .tag.missing { background: var(--warn-wash); color: var(--warn); }
+  .tag.swap { background: var(--info-wash); color: var(--info); cursor: help; }
 
   /* --- expanded recipe detail: photo, ingredients w/ amounts, steps --- */
   .recipe-detail { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.26s ease; }
@@ -1656,12 +1658,21 @@ function recipeCard(recipe, kind) {
     ? recipe.matchedIngredients.map((n) => `<span class="tag have">${escapeAttr(n)}</span>`).join('')
     : [
         ...recipe.matchedIngredients.map((n) => `<span class="tag have">${escapeAttr(n)}</span>`),
-        ...recipe.missingIngredients.map((n) => `<span class="tag missing">${escapeAttr(n)}</span>`),
+        ...recipe.missingIngredients.map((n) => {
+          const swap = (recipe.swaps || []).find((s) => s.missing === n);
+          return swap
+            ? `<span class="tag swap" title="${escapeAttr(swap.note)}">${escapeAttr(n)} → ${escapeAttr(swap.use)}</span>`
+            : `<span class="tag missing">${escapeAttr(n)}</span>`;
+        }),
       ].join('');
 
+  // Substitutions turn some gaps into swaps; the pill says what's left.
+  const swapCount = (recipe.swaps || []).length;
   const pill = kind === 'ready'
     ? '<span class="ready-pill">READY</span>'
-    : `<span class="missing-pill">${recipe.missingCount} missing</span>`;
+    : recipe.missingAfterSwaps === 0 && swapCount > 0
+      ? `<span class="swap-pill">READY WITH ${swapCount} SWAP${swapCount > 1 ? 'S' : ''}</span>`
+      : `<span class="missing-pill">${recipe.missingAfterSwaps ?? recipe.missingCount} missing${swapCount ? ` · ${swapCount} swap${swapCount > 1 ? 's' : ''}` : ''}</span>`;
 
   // Collapsed by default, matching the inventory pattern: name + a quick
   // ingredient-name glance up front, full photo/amounts/steps only after
