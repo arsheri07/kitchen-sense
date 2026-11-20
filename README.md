@@ -160,4 +160,4 @@ npm install
 npm test
 ```
 
-19 unit tests on Node's built-in test runner, no database required. They cover swap planning (including the dietary-safety and no-double-use rules), dietary tag and protein derivation, catalog integrity, expiry estimates, preference scoring, and `matchRecipes()` end to end against a small in-memory stand-in for the Postgres pool. CI runs them plus a TypeScript type check on every push.
+19 unit tests on Node's built-in test runner, no database required. They cover swap planning (including the dietary-safety and no-double-use rules), dietary tag and protein derivation, catalog integrity, expiry estimates, preference scoring, and `matchRecipes()` end to end against a small in-memory stand-in for the Postgres pool.
